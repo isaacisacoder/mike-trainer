@@ -1,1 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Mike Linebacker Formation &amp; Play Recognition Trainer</title>
+<style>
+  :root{
+    --font:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    --field:#1f6b3a;
+    --field2:#18582f;
+    --line:#ffffff;
+    --bg:#121416;
+    --panel:#f5f6f8;
+    --panel2:#edf0f5;
+    --panel3:#dfe4ea;
+    --accent:#2d55e5;
+    --good:#2d55e5;
+    --bad:#7d8794;
+    --text:#07113f;
+    --muted:#626b78;
+    --soft:#384154;
+    --ol:#b8c1cb;
+    --back:#ffffff;
+    --skill:#d4dae1;
+    --mike:#2d55e5;
+    --border:#c9d0d9;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg);}
+  body{
+    margin:0;
+    font-family:var(--font);
+    font-size:16px;
+    line-height:1.5;
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    background:#15181c;
+    color:var(--text);
+    min-height:100vh;
+    padding-bottom:24px;
+    position:relative;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.13'/%3E%3C/svg%3E");
+  }
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    opacity:.72;
+    background-image:
+      linear-gradient(rgba(255,255,255,.035),rgba(255,255,255,.035)),
+      linear-gradient(rgba(255,255,255,.035),rgba(255,255,255,.035)),
+      linear-gradient(90deg,transparent 0 7%,rgba(255,255,255,.035) 7% 7.08%,transparent 7.08% 93%,rgba(255,255,255,.035) 93% 93.08%,transparent 93.08%),
+      linear-gradient(90deg,transparent 0 5%,rgba(255,255,255,.045) 5% 6.2%,transparent 6.2% 93.8%,rgba(255,255,255,.045) 93.8% 95%,transparent 95%);
+    background-position:0 18%,0 82%,0 19%,0 81%;
+    background-size:100% 1px,100% 1px,100% 48%,100% 48%;
+    background-repeat:no-repeat;
+  }
+  .app-shell{
+    max-width:1500px;
+    margin:28px auto 32px;
+    background:#eef1f4;
+    border:1px solid #2b3138;
+    border-radius:8px;
+    box-shadow:0 14px 28px rgba(0,0,0,.22),0 2px 5px rgba(0,0,0,.14);
+    overflow:hidden;
+    position:relative;
+    z-index:1;
+  }
+  header{
+    max-width:1500px;
+    margin:0 auto;
+    padding:14px 16px 8px;
+    position:relative;
+  }
+  .hero{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:5px solid var(--accent);
+    border-radius:6px;
+    padding:13px 16px 12px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    color:var(--accent);
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  h1{
+    font-family:var(--font);
+    font-size:clamp(1.65rem,3vw,2.25rem);
+    line-height:1.08;
+    margin:0 0 4px;
+    letter-spacing:0;
+    text-transform:none;
+    font-weight:750;
+    color:var(--text);
+  }
+  .sub{
+    color:var(--soft);
+    font-size:.92rem;
+    line-height:1.35;
+    max-width:720px;
+  }
+  .hero-details{
+    display:flex;
+    gap:0;
+    flex-wrap:wrap;
+    margin-top:7px;
+  }
+  .hero-detail{
+    background:transparent;
+    border:0;
+    border-radius:0;
+    color:var(--text);
+    font-size:.78rem;
+    font-weight:700;
+    padding:0;
+  }
+  .hero-detail + .hero-detail::before{content:"/";color:var(--muted);margin:0 9px;font-weight:500;}
+  .topbar{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(56px,auto)) minmax(220px,1fr) auto auto;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:6px;
+  }
+  .stat{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:34px;
+    padding:4px 10px;
+    background:transparent;
+    border:0;
+    border-right:1px solid var(--border);
+    border-radius:0;
+  }
+  .stat .num{font-weight:800;font-size:1rem;line-height:1;}
+  .stat .lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+  .progress-wrap{
+    position:relative;
+    height:5px;
+    min-width:120px;
+    overflow:hidden;
+    border-radius:2px;
+    background:#d8dde4;
+    border:0;
+  }
+  .progress-bar{
+    height:100%;
+    background:var(--accent);
+    width:0%;
+    transition:width .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .diff-toggle{
+    display:flex;
+    gap:4px;
+    padding:3px;
+    background:#ffffff;
+    border:1px solid var(--border);
+    border-radius:6px;
+  }
+  .diff-toggle button{
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    padding:6px 10px;
+    border-radius:4px;
+    font-size:.78rem;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .18s ease,color .18s ease,transform .18s ease;
+    white-space:nowrap;
+  }
+  .diff-toggle button:hover{color:var(--text);}
+  .diff-toggle button.active{
+    background:var(--accent);
+    color:#ffffff;
+  }
+  .sim-mode-btn{
+    min-height:34px;
+    padding:6px 11px;
+    border:1px solid var(--border);
+    border-radius:4px;
+    background:#ffffff;
+    color:var(--text);
+    font-family:var(--font);
+    font-size:.78rem;
+    font-weight:800;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .sim-mode-btn:hover,.sim-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#ffffff;}
+  main{
+    max-width:1500px;
+    margin:0 auto;
+    padding:0 16px;
+    position:relative;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:16px 18px;
+    margin-top:8px;
+    animation:cardIn .28s ease both;
+  }
+  .question-meta{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .scenario-strip{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-height:42px;
+    margin:-2px 0 12px;
+    padding:7px 10px;
+    background:#e8ebf0;
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:4px;
+  }
+  .scenario-kicker{
+    color:var(--muted);
+    font-size:.65rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .scenario-down{
+    color:var(--text);
+    font-size:1.05rem;
+    font-weight:850;
+    letter-spacing:.02em;
+    white-space:nowrap;
+  }
+  .scenario-phase{
+    margin-left:auto;
+    color:var(--accent);
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .scenario-range{
+    color:var(--muted);
+    font-size:.76rem;
+    white-space:nowrap;
+  }
+  .strength-gate{
+    margin:0 0 14px;
+    padding:12px 14px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-left:4px solid var(--accent);
+    border-radius:5px;
+  }
+  .strength-title{
+    color:var(--accent);
+    font-size:.78rem;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .strength-copy{
+    margin:3px 0 8px;
+    color:var(--soft);
+    font-size:.9rem;
+  }
+  .strength-details{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 14px;
+    margin-bottom:9px;
+    color:var(--text);
+    font-size:.78rem;
+    font-weight:750;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .strength-options{display:flex;gap:8px;flex-wrap:wrap;}
+  .strength-btn{
+    min-width:112px;
+    min-height:38px;
+    padding:8px 12px;
+    border:1px solid var(--border);
+    border-radius:4px;
+    background:var(--panel);
+    color:var(--text);
+    font-family:var(--font);
+    font-size:.9rem;
+    font-weight:850;
+    letter-spacing:.04em;
+    cursor:pointer;
+  }
+  .strength-btn:hover{border-color:var(--accent);}
+  .strength-btn.correct{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .strength-btn.wrong{background:var(--panel3);border-color:var(--bad);color:var(--text);}
+  .strength-btn:disabled{cursor:default;}
+  .strength-feedback{display:none;margin-top:8px;color:var(--soft);font-size:.86rem;line-height:1.35;}
+  .strength-feedback.show{display:block;}
+  .question-stage.locked{display:block;}
+  .question-stage.locked > :not(.field-holder){display:none;}
+  .question-stage.locked > .field-holder{display:block;}
+  .question-stage.unlocked{display:block;animation:popIn .22s ease both;}
+  .qtype,.difficulty-pill{
+    display:inline-flex;
+    align-items:center;
+    min-height:25px;
+    font-size:.74rem;
+    font-weight:700;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:4px 8px;
+    border-radius:4px;
+  }
+  .qtype.formation,.qtype.playtype,.qtype.mike{background:var(--accent);color:#ffffff;border:1px solid var(--accent);}
+  .difficulty-pill{background:var(--panel2);color:var(--muted);border:1px solid #c7ccd4;}
+  .qtext{
+    font-family:var(--font);
+    font-size:clamp(1.28rem,2vw,1.68rem);
+    line-height:1.24;
+    margin:0 0 14px;
+    max-width:850px;
+    font-weight:700;
+    letter-spacing:0;
+  }
+  .drill-meta{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+    margin:0 0 12px;
+    padding:8px 0;
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+  }
+  .coverage-readout .meta-item strong{color:var(--accent);font-weight:750;}
+  .meta-item{min-width:0;}
+  .meta-item span{
+    display:block;
+    color:var(--accent);
+    font-size:.66rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:2px;
+  }
+  .meta-item strong{
+    display:block;
+    color:var(--soft);
+    font-size:.82rem;
+    font-weight:500;
+    line-height:1.3;
+  }
+  .readbox{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    padding:9px 11px;
+    border-radius:4px;
+    font-size:.92rem;
+    font-weight:400;
+    color:var(--text);
+    margin-bottom:14px;
+    line-height:1.45;
+  }
+  .key-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+    margin:0 0 14px;
+  }
+  .key-card{
+    min-height:64px;
+    padding:9px 10px;
+    border-radius:4px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--soft);
+    font-size:.92rem;
+    font-weight:400;
+    line-height:1.4;
+  }
+  .key-card strong{
+    display:block;
+    color:var(--accent);
+    font-size:.72rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .field-holder{min-width:0;}
+  .field-wrap{
+    width:100%;
+    border-radius:5px;
+    overflow:hidden;
+    border:1px solid #e7e3d6;
+    background:var(--field);
+    touch-action:none;
+  }
+  svg{display:block;width:100%;height:auto;}
+  .legend{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:.82rem;
+    color:var(--muted);
+    margin:8px 0 2px;
+    padding-top:8px;
+    border-top:1px solid var(--border);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .choices{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:16px;
+  }
+  .choice-option{min-width:0;}
+  .choice-btn{
+    font-family:var(--font);
+    min-height:50px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:11px 13px;
+    border-radius:5px;
+    font-size:1rem;
+    font-weight:600;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s,background .15s;
+    width:100%;
+  }
+  .choice-btn:hover{
+    border-color:var(--accent);
+  }
+  .choice-btn.correct{
+    background:var(--accent);
+    border-color:var(--good);
+    color:#ffffff;
+  }
+  .choice-btn.wrong{
+    background:var(--panel3);
+    border-color:var(--bad);
+    color:var(--text);
+  }
+  .choice-btn:disabled{cursor:default;}
+  .choice-preview{
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    transform:translateY(-4px) scale(.985);
+    transform-origin:top center;
+    border:0 solid var(--border);
+    border-radius:4px;
+    background:#153f2a;
+    pointer-events:none;
+    transition:max-height .22s ease,opacity .18s ease,transform .22s ease,margin-top .22s ease,border-width .22s ease;
+  }
+  .choice-option:hover .choice-preview,
+  .choice-option:focus-within .choice-preview,
+  .choice-preview.show{
+    max-height:190px;
+    margin-top:6px;
+    opacity:1;
+    transform:translateY(0) scale(1);
+    border-width:1px;
+  }
+  .choice-preview-label{
+    padding:5px 8px 0;
+    color:#e7e3d6;
+    font-size:.64rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .choice-preview svg{width:100%;height:auto;}
+  .drag-hint{
+    font-size:.94rem;
+    font-weight:400;
+    color:var(--soft);
+    margin:14px 0 10px;
+    padding:10px 12px;
+    border-radius:4px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+  }
+  .feedback{
+    margin-top:14px;
+    padding:13px 15px;
+    border-radius:5px;
+    font-size:1rem;
+    line-height:1.45;
+    font-weight:400;
+    display:none;
+  }
+  .feedback.show{display:block;animation:popIn .22s ease both;}
+  .feedback.correct{background:var(--accent);border:1px solid var(--good);color:#ffffff;}
+  .feedback.wrong{background:var(--panel3);border:1px solid var(--bad);color:var(--text);}
+  .feedback strong{display:block;margin-bottom:4px;font-size:1.05rem;color:var(--text);}
+  .feedback.correct strong{color:#ffffff;}
+  .celebration-layer{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    overflow:hidden;
+    z-index:9999;
+  }
+  .celebration-layer.celebrate::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:rgba(0,20,137,.14);
+    animation:screenFlash 760ms ease-out forwards;
+  }
+  .confetti-piece{
+    position:absolute;
+    left:0;
+    top:0;
+    width:12px;
+    height:20px;
+    border-radius:2px;
+    background:var(--accent);
+    opacity:0;
+    transform:translate(-50%,-50%) rotate(0deg);
+    animation:confettiPop 1400ms cubic-bezier(.18,.82,.28,1) forwards;
+  }
+  .confetti-piece.alt{
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    background:#ffffff;
+  }
+  .confetti-piece.good{
+    background:#c7ccd4;
+  }
+  .score-pop{
+    animation:scorePop 520ms ease;
+  }
+  .actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:14px;
+  }
+  .next-btn,.check-btn,.restart-btn{
+    font-family:var(--font);
+    border:none;
+    font-weight:800;
+    padding:10px 16px;
+    border-radius:5px;
+    font-size:1rem;
+    cursor:pointer;
+    transition:filter .15s ease;
+  }
+  .next-btn{
+    background:var(--accent);
+    color:#ffffff;
+    display:none;
+  }
+  .check-btn{
+    background:var(--accent);
+    color:#ffffff;
+    margin-top:10px;
+    display:none;
+  }
+  .next-btn:hover,.check-btn:hover,.restart-btn:hover{
+    filter:brightness(1.04);
+  }
+  .next-btn.show,.check-btn.show{display:inline-block;}
+  .end-card{
+    text-align:center;
+    padding:42px 24px;
+  }
+  .end-kicker{
+    color:var(--accent);
+    font-size:.82rem;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .end-card .score{
+    font-size:clamp(3rem,8vw,5.2rem);
+    line-height:1;
+    font-weight:900;
+    margin:12px 0;
+    color:var(--accent);
+  }
+  .restart-btn{
+    margin-top:20px;
+    background:var(--accent);
+    color:#ffffff;
+  }
+  .rule-note{
+    font-size:.76rem;
+    color:var(--muted);
+    margin-top:14px;
+    border-top:1px solid var(--border);
+    padding-top:10px;
+    line-height:1.45;
+  }
+  .sim-card{padding-bottom:18px;}
+  .sim-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:12px;
+  }
+  .sim-kicker{
+    color:var(--accent);
+    font-size:.75rem;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .sim-title{margin:2px 0 3px;font-size:1.4rem;line-height:1.15;font-weight:800;}
+  .sim-copy{color:var(--soft);font-size:.9rem;line-height:1.4;}
+  .sim-stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .sim-stat{padding:6px 9px;border:1px solid var(--border);background:var(--panel2);border-radius:4px;min-width:72px;text-align:center;}
+  .sim-stat strong{display:block;color:var(--text);font-size:1rem;line-height:1.1;}
+  .sim-stat span{display:block;color:var(--muted);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-top:3px;}
+  .sim-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;color:var(--soft);font-size:.82rem;}
+  .sim-meta span{padding:4px 7px;border:1px solid var(--border);background:var(--panel2);border-radius:4px;}
+  .sim-field-wrap{position:relative;}
+  .sim-field-wrap svg{cursor:crosshair;}
+  .sim-field-wrap.sim-position svg{cursor:grab;}
+  .sim-card .sim-field-wrap polyline{display:none;}
+  .sim-instruction{margin:10px 0 0;padding:9px 11px;border-left:3px solid var(--accent);background:var(--panel2);color:var(--soft);font-size:.9rem;}
+  .sim-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .sim-action{background:var(--accent);color:#ffffff;border:1px solid var(--accent);padding:9px 14px;border-radius:4px;font-family:var(--font);font-weight:800;cursor:pointer;}
+  .sim-action:disabled{opacity:.45;cursor:default;}
+  .sim-action.secondary{background:var(--panel2);border-color:var(--border);color:var(--text);}
+  .sim-feedback{min-height:24px;color:var(--soft);font-size:.9rem;font-weight:700;}
+  .sim-feedback.good{color:#177343;}
+  .sim-feedback.bad{color:#a52a2a;}
+  .sim-wall-line{stroke:rgba(29,63,215,.7);stroke-width:2;stroke-dasharray:6 5;}
+  .sim-runner-shadow{fill:rgba(0,0,0,.28);}
+  .sim-runner{stroke:#071016;stroke-width:2;}
+  .sim-end{text-align:center;padding:30px 18px;}
+  .sim-end .score{font-size:3.8rem;line-height:1;font-weight:900;color:var(--accent);margin:10px 0;}
+  @media (max-width:780px){
+    .app-shell{margin:12px 10px 20px;border-radius:7px;}
+    header{padding-top:20px;}
+    .topbar{grid-template-columns:repeat(3,1fr);}
+    .progress-wrap{grid-column:1 / -1;order:2;}
+    .diff-toggle{grid-column:1 / -1;justify-content:center;order:3;}
+    .sim-mode-btn{grid-column:1 / -1;order:4;width:100%;}
+  }
+  @media (min-width:900px){
+    .card{
+      display:block;
+    }
+    .choices{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      margin-top:14px;
+    }
+    .choice-preview svg{min-height:138px;}
+    .drag-hint{
+      margin-top:12px;
+    }
+  }
+  @media (max-width:540px){
+    h1{font-size:2rem;}
+    .choices{grid-template-columns:1fr;}
+    .topbar{grid-template-columns:repeat(3,1fr);}
+    .stat{min-height:42px;}
+    .key-grid{grid-template-columns:1fr;}
+    .drill-meta{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .scenario-strip{align-items:flex-start;flex-wrap:wrap;gap:5px 9px;}
+    .scenario-phase{margin-left:0;}
+  }
+  @keyframes cardIn{
+    from{transform:translateY(8px);}
+    to{transform:translateY(0);}
+  }
+  @keyframes popIn{
+    from{opacity:0;transform:translateY(5px) scale(.99);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  @keyframes confettiPop{
+    0%{
+      opacity:0;
+      transform:translate(-50%,-50%) translate(0,0) rotate(0deg) scale(.75);
+    }
+    12%{opacity:1;}
+    100%{
+      opacity:0;
+      transform:translate(-50%,-50%) translate(var(--x),var(--y)) rotate(var(--r)) scale(1);
+    }
+  }
+  @keyframes screenFlash{
+    0%{opacity:0;}
+    18%{opacity:1;}
+    100%{opacity:0;}
+  }
+  @keyframes scorePop{
+    0%{transform:scale(1);}
+    45%{transform:scale(1.18);color:var(--accent);}
+    100%{transform:scale(1);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .card,.feedback.show{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+<header>
+  <section class="hero" aria-label="Trainer introduction">
+    <div>
+      <div class="eyebrow">Pre-snap drill</div>
+      <h1>Mike Linebacker Trainer</h1>
+      <div class="sub">Answer formation questions, identify offensive calls, and practice Mike alignment.</div>
+      <div class="hero-details" aria-label="Drill details">
+        <span class="hero-detail">Basic: 15 questions</span>
+        <span class="hero-detail">All Levels: 25 questions</span>
+        <span class="hero-detail">132 offensive calls</span>
+      </div>
+    </div>
+  </section>
+  <div class="topbar">
+    <div class="stat"><div class="num" id="scoreNum">0</div><div class="lbl">Score</div></div>
+    <div class="stat"><div class="num" id="streakNum">0</div><div class="lbl">Streak</div></div>
+    <div class="stat"><div class="num" id="qNum">0/0</div><div class="lbl">Question</div></div>
+    <div class="progress-wrap" aria-label="Session progress"><div class="progress-bar" id="progBar"></div></div>
+    <div class="diff-toggle">
+      <button id="diffBasic" class="active">Basic</button>
+      <button id="diffAll">All Levels</button>
+    </div>
+    <button id="runSim" class="sim-mode-btn" type="button">Run Simulation</button>
+  </div>
+</header>
+<main id="main"></main>
+</div>
 
+<script>
+/* =========================================================================
+   FIELD / COORDINATE SYSTEM
+   viewBox 0 0 800 480. Formation data uses an offense-facing coordinate
+   system; the display mirrors the y-axis so the coach sees the field from
+   Mike's point of view: offense at the top, defense at the bottom.
+   LOS_Y = the logical line of scrimmage. Offensive linemen sit on it.
+   All diagrams here are original schematic dot/label drawings, not
+   copied from any team or publisher's playbook art.
+   ========================================================================= */
+const FW = 800, FH = 480, LOS_Y = 340;
+const DISPLAY_LOS_Y = FH - LOS_Y;
+const displayY = y => FH - y;
+const COLORS = {
+  field:"#1f6b3a",
+  ol:"#9aa3af",
+  qb:"#ffffff",
+  rb:"#c7ccd4",
+  wr:"#1d3fd7",
+  te:"#7d8794",
+  mike:"#1d3fd7"
+};
+
+function makeSVG(){
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox", `0 0 ${FW} ${FH}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Football formation diagram");
+  return svg;
+}
+function el(tag, attrs){
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function drawFieldBackground(svg){
+  svg.appendChild(el("rect",{x:0,y:0,width:FW,height:FH,fill:COLORS.field || "#16603a"}));
+  svg.appendChild(el("rect",{x:18,y:18,width:FW-36,height:FH-36,rx:8,fill:"none",stroke:"#f2eedf","stroke-opacity":.58,"stroke-width":2}));
+
+  // Full-width yard lines mark each 10-yard interval; the LOS is emphasized below.
+  for(let y=60;y<FH;y+=80){
+    svg.appendChild(el("line",{x1:24,y1:y,x2:FW-24,y2:y,stroke:"rgba(255,255,255,.16)","stroke-width":1.5}));
+  }
+  for(let y=92;y<FH-42;y+=46){
+    svg.appendChild(el("line",{x1:42,y1:y,x2:70,y2:y,stroke:"rgba(255,255,255,.28)","stroke-width":2}));
+    svg.appendChild(el("line",{x1:FW-70,y1:y,x2:FW-42,y2:y,stroke:"rgba(255,255,255,.28)","stroke-width":2}));
+  }
+  svg.appendChild(el("line",{x1:24,y1:DISPLAY_LOS_Y,x2:FW-24,y2:DISPLAY_LOS_Y,stroke:"#f7f2dd",'stroke-width':3}));
+  svg.appendChild(el("text",{x:FW-30,y:DISPLAY_LOS_Y-12,fill:"#f7f2dd","font-size":12,"font-weight":800,"text-anchor":"end"})).textContent = "LOS";
+  svg.appendChild(el("text",{x:28,y:32,fill:"rgba(255,255,255,.74)","font-size":12,"font-weight":800}))
+    .textContent = "OFFENSE";
+  svg.appendChild(el("text",{x:28,y:FH-24,fill:"rgba(255,255,255,.74)","font-size":12,"font-weight":800}))
+    .textContent = "DEFENSE";
+}
+
+function drawFootball(svg, ballX = 400){
+  const y = DISPLAY_LOS_Y - 6;
+  const ball = el("g",{transform:`translate(${ballX} ${y}) rotate(-24) scale(.55)`});
+  ball.appendChild(el("path",{
+    d:"M -23 0 Q -18 -14 0 -16 Q 18 -14 23 0 Q 18 14 0 16 Q -18 14 -23 0 Z",
+    fill:"#8f452b",stroke:"#f1eee4","stroke-width":2.2
+  }));
+  ball.appendChild(el("path",{
+    d:"M -18 -5 Q 0 -15 18 -5 Q 8 -8 0 -8 Q -8 -8 -18 -5 Z",
+    fill:"#c87952",opacity:.58
+  }));
+  ball.appendChild(el("path",{
+    d:"M -15 6 Q 0 1 15 6",
+    fill:"none",stroke:"#4c241c","stroke-width":1.35,"stroke-linecap":"round"
+  }));
+  ball.appendChild(el("path",{
+    d:"M -13 -7 Q 0 0 13 7",
+    fill:"none",stroke:"#3b2019","stroke-width":1.35,"stroke-linecap":"round"
+  }));
+  ball.appendChild(el("path",{
+    d:"M -8 -5 Q 0 0 8 5",
+    fill:"none",stroke:"#f6e8c9","stroke-width":2.5,"stroke-linecap":"round"
+  }));
+  [-6,-3,0,3,6].forEach(offset => {
+    ball.appendChild(el("line",{
+      x1:offset-2.3,y1:offset-3.5,x2:offset+2.3,y2:offset+3.5,
+      stroke:"#fff4d8","stroke-width":2.15,"stroke-linecap":"round"
+    }));
+  });
+  svg.appendChild(ball);
+  return ball;
+}
+
+function drawDefensePlayer(svg, player){
+  const group = el("g",{});
+  group.appendChild(el("circle",{cx:player.x,cy:player.y+13,r:13,fill:"rgba(0,0,0,.3)"}));
+  group.appendChild(el("circle",{cx:player.x,cy:player.y,r:14,fill:"#33495a",stroke:"#08131b","stroke-width":2}));
+  const label = el("text",{x:player.x,y:player.y+4,"text-anchor":"middle","font-size":8,"font-weight":850,fill:"#ffffff"});
+  label.textContent = player.label;
+  group.appendChild(label);
+  svg.appendChild(group);
+}
+
+function baseFourThreeDefense(ballX){
+  const clamp = x => simClamp(x,34,FW-34);
+  return [
+    {x:clamp(ballX-96),y:DISPLAY_LOS_Y+28,label:"DE"},
+    {x:clamp(ballX-32),y:DISPLAY_LOS_Y+28,label:"DT"},
+    {x:clamp(ballX+32),y:DISPLAY_LOS_Y+28,label:"DT"},
+    {x:clamp(ballX+96),y:DISPLAY_LOS_Y+28,label:"DE"},
+    {x:clamp(ballX-86),y:DISPLAY_LOS_Y+92,label:"WILL"},
+    {x:clamp(ballX+86),y:DISPLAY_LOS_Y+88,label:"SAM"},
+    {x:clamp(ballX-190),y:DISPLAY_LOS_Y+174,label:"CB"},
+    {x:clamp(ballX-62),y:DISPLAY_LOS_Y+184,label:"FS"},
+    {x:clamp(ballX+62),y:DISPLAY_LOS_Y+184,label:"SS"},
+    {x:clamp(ballX+190),y:DISPLAY_LOS_Y+174,label:"CB"}
+  ];
+}
+
+function drawCoverageOverlay(svg, coverage){
+  if(!coverage || !coverage.zones) return;
+  coverage.zones.forEach(zone => {
+    svg.appendChild(el("rect",{
+      x:zone.x,y:FH-zone.y-zone.h,width:zone.w,height:zone.h,rx:6,
+      fill:zone.fill || "rgba(10,25,22,.2)",
+      stroke:"rgba(247,242,221,.46)","stroke-width":1,"stroke-dasharray":"5,4"
+    }));
+    const label = el("text",{
+      x:zone.x + zone.w/2,
+      y:displayY(zone.y + zone.h/2) + 4,
+      "text-anchor":"middle",
+      fill:"rgba(247,242,221,.84)",
+      "font-size":11,
+      "font-weight":800,
+      "letter-spacing":.6
+    });
+    label.textContent = zone.label;
+    svg.appendChild(label);
+  });
+  const shell = el("text",{x:FW/2,y:FH-42,"text-anchor":"middle",fill:"rgba(247,242,221,.9)","font-size":13,"font-weight":850,"letter-spacing":1.2});
+  shell.textContent = coverage.label.toUpperCase();
+  svg.appendChild(shell);
+}
+
+function drawRouteOverlay(svg, players, routes){
+  if(!routes?.length) return;
+  const displayPlayers = labelWideReceivers(players);
+  const receivers = displayPlayers.filter(p => playerRole(p) === "wr");
+  const routeColors = ["#f4c95d","#f28f3b","#9fe0c1","#f7f2dd"];
+  routes.forEach((entry, i) => {
+    const p = receivers[i];
+    const route = ROUTE_TREE.find(item => item.name === entry.route);
+    if(!p || !route) return;
+    const outside = p.x < FW/2 ? -1 : 1;
+    const points = route.points.map(([dx,dy]) => `${p.x + dx * outside},${displayY(p.y + dy)}`).join(" ");
+    svg.appendChild(el("polyline",{
+      points,fill:"none",stroke:routeColors[i % routeColors.length],"stroke-width":3,
+      "stroke-linecap":"round","stroke-linejoin":"round","stroke-dasharray":"8,5"
+    }));
+    const end = route.points[route.points.length-1];
+    const label = el("text",{
+      x:p.x + end[0] * outside,
+      y:displayY(p.y + end[1]) - 7,
+      "text-anchor":"middle",
+      fill:routeColors[i % routeColors.length],
+      "font-size":11,
+      "font-weight":850,
+      "paint-order":"stroke",
+      stroke:"#18582f",
+      "stroke-width":3
+    });
+    label.textContent = `${entry.receiver} ${entry.number} ${entry.route}`;
+    svg.appendChild(label);
+  });
+}
+
+function routePreviewForChoice(choice){
+  const name = String(choice).toLowerCase();
+  if(name.includes("slant")) return ["Slant","Slant","Flat"];
+  if(name.includes("curl") || name.includes("hitch") || name.includes("stick")) return ["Curl / Hook","Flat","Curl / Hook"];
+  if(name.includes("out") || name.includes("smoke")) return ["Out","Curl / Hook","Flat"];
+  if(name.includes("dig") || name.includes("cross") || name.includes("mesh")) return ["Dig","Curl / Hook","Flat"];
+  if(name.includes("post")) return ["Post","Dig","Flat"];
+  if(name.includes("corner") || name.includes("flag")) return ["Corner","Curl / Hook","Flat"];
+  if(name.includes("screen") || name.includes("bubble") || name.includes("swing")) return ["Flat","Flat","Curl / Hook"];
+  if(name.includes("seam") || name.includes("vertical") || name.includes("go") || name.includes("streak")) return ["Seam","Go","Seam"];
+  return null;
+}
+
+function drawRunPreview(svg, players, choice){
+  const name = String(choice).toLowerCase();
+  const displayPlayers = labelWideReceivers(players);
+  const runner = displayPlayers.find(p => playerRole(p) === "rb") || displayPlayers.find(p => p.label === "QB");
+  const lane = runner ? (name.includes("toss") || name.includes("sweep") || name.includes("outside") ? (runner.x < FW/2 ? -1 : 1) * 150 : (name.includes("counter") || name.includes("power") || name.includes("trap") ? (runner.x < FW/2 ? 62 : -62) : 0)) : 0;
+  drawSupportPaths(svg, displayPlayers, choice, false, lane);
+  if(runner){
+    const label = el("text",{x:400+lane,y:displayY(LOS_Y-102),"text-anchor":"middle",fill:"#f4c95d","font-size":12,"font-weight":850,"paint-order":"stroke",stroke:"#18582f","stroke-width":3});
+    label.textContent = "RUN LANE";
+    svg.appendChild(label);
+  }
+}
+
+function drawSupportPaths(svg, players, choice, isPass, lane){
+  const name = String(choice).toLowerCase();
+  const passRoutes = routePreviewForChoice(choice) || ["Curl / Hook"];
+  let routeIndex = 0;
+  players.forEach(p => {
+    const role = playerRole(p);
+    if(role === "wr") return;
+    let points = [];
+    let color = "#c7ccd4";
+    let width = 2.5;
+
+    if(p.type === "ol"){
+      const pull = name.includes("power") || name.includes("counter") || name.includes("trap");
+      const pullDirection = p.x < FW/2 ? 1 : -1;
+      points = pull
+        ? [[p.x,p.y],[p.x + pullDirection*34,p.y-12],[p.x + pullDirection*78,p.y-38]]
+        : [[p.x,p.y],[p.x,p.y-34]];
+      color = "#d6dbe4";
+      width = 2;
+    } else if(role === "te"){
+      if(isPass){
+        const routeName = passRoutes[routeIndex++ % passRoutes.length];
+        const route = ROUTE_TREE.find(item => item.name === routeName) || ROUTE_TREE[3];
+        const outside = p.x < FW/2 ? -1 : 1;
+        points = route.points.map(([dx,dy]) => [p.x + dx*outside,p.y + dy]);
+        color = "#9fe0c1";
+      } else {
+        points = [[p.x,p.y],[p.x,p.y-24],[p.x + (p.x < FW/2 ? 26 : -26),p.y-38]];
+        color = "#9fe0c1";
+      }
+    } else if(role === "qb"){
+      if(isPass){
+        points = [[p.x,p.y],[p.x,p.y+34]];
+        color = "#ffffff";
+      } else {
+        points = [[p.x,p.y],[p.x + lane*.12,p.y-24]];
+        color = "#ffffff";
+      }
+    } else if(role === "rb"){
+      if(isPass){
+        const release = name.includes("screen") || name.includes("bubble") || name.includes("swing") ? 42 : (p.x < FW/2 ? -28 : 28);
+        points = [[p.x,p.y],[p.x,p.y-20],[p.x+release,p.y-30]];
+        color = "#f28f3b";
+      } else {
+        const targetX = p.x + lane;
+        points = [[p.x,p.y],[p.x + lane*.45,LOS_Y-22],[targetX,LOS_Y-90]];
+        color = "#f4c95d";
+        width = 4;
+      }
+    } else {
+      points = [[p.x,p.y],[p.x + (p.x < FW/2 ? 22 : -22),p.y-28]];
+      color = "#f28f3b";
+    }
+
+    if(points.length > 1){
+      svg.appendChild(el("polyline",{
+        points:points.map(([x,y]) => `${x},${displayY(y)}`).join(" "),
+        fill:"none",stroke:color,"stroke-width":width,
+        "stroke-linecap":"round","stroke-linejoin":"round","stroke-dasharray":"7,5"
+      }));
+    }
+  });
+}
+
+function renderChoicePreview(container, players, choice, ballX = 400){
+  const preview = document.createElement("div");
+  preview.className = "choice-preview";
+  const label = document.createElement("div");
+  label.className = "choice-preview-label";
+  label.textContent = "Play path preview";
+  preview.appendChild(label);
+  const svg = makeSVG();
+  const alignedPlayers = alignPlayersToBall(players, ballX);
+  drawFieldBackground(svg);
+  const routes = routePreviewForChoice(choice);
+  if(routes){
+    drawRouteOverlay(svg, alignedPlayers, makeRouteEntries(alignedPlayers, {routes}));
+    drawSupportPaths(svg, alignedPlayers, choice, true, 0);
+  } else {
+    drawRunPreview(svg, alignedPlayers, choice);
+  }
+  label.textContent = routes ? `Route preview · ${choice}` : `Run preview · ${choice}`;
+  alignedPlayers.forEach(p => drawPlayer(svg, p));
+  drawFootball(svg, ballX);
+  preview.appendChild(svg);
+  container.appendChild(preview);
+}
+
+function playerRole(p){
+  const label = String(p.label || "").replace(/[^A-Z]/gi,"").toUpperCase();
+  if(p.type === "ol") return "ol";
+  if(label === "QB") return "qb";
+  if(label === "TE" || label === "Y" || label === "WB" || label === "WING" || label === "W") return "te";
+  if(label.startsWith("WR") || label === "SE" || label === "FL" || label === "X" || label === "Z" || label === "S" || label === "H") return "wr";
+  return "rb";
+}
+
+function labelWideReceivers(players){
+  const displayPlayers = players.map(p => ({...p}));
+  displayPlayers.forEach(p => {
+    const role = playerRole(p);
+    if(role === "wr" || role === "te") p.y = Math.max(p.y, LOS_Y);
+  });
+  const receivers = displayPlayers
+    .filter(p => playerRole(p) === "wr")
+    .sort((a,b) => a.x - b.x);
+  receivers.forEach((p, i) => { p.label = `WR${i+1}`; });
+  return displayPlayers;
+}
+
+function alignXToBall(x, ballX = 400){
+  return Math.max(32, Math.min(FW - 32, x + (ballX - 400)));
+}
+
+function alignPlayersToBall(players, ballX = 400){
+  return labelWideReceivers(players).map(p => ({...p, x:alignXToBall(p.x, ballX)}));
+}
+
+function labelColorFor(fill){
+  return fill === COLORS.wr || fill === COLORS.te || fill === COLORS.mike ? "#ffffff" : "#07113f";
+}
+
+// player types: 'ol' (square), 'back'/'qb' (circle), 'skill' (circle, WR/TE)
+function drawPlayer(svg, p){
+  const g = el("g",{});
+  const role = playerRole(p);
+  const fill = COLORS[role] || COLORS.rb;
+  const y = displayY(p.y);
+  g.appendChild(el("circle",{cx:p.x,cy:y+15,r:15,fill:"rgba(0,0,0,.22)"}));
+  g.appendChild(el("circle",{cx:p.x,cy:y,r:16,fill:fill,stroke:"#071016","stroke-width":2}));
+  const t = el("text",{x:p.x,y:y+4,"text-anchor":"middle","font-size":10,"font-weight":850,fill:labelColorFor(fill)});
+  t.textContent = p.label;
+  g.appendChild(t);
+  svg.appendChild(g);
+  return g;
+}
+
+function renderField(container, players, diagram = {}){
+  const wrap = document.createElement("div");
+  wrap.className = "field-wrap";
+  const svg = makeSVG();
+  const displayPlayers = alignPlayersToBall(players, diagram.ballX);
+  drawFieldBackground(svg);
+  drawCoverageOverlay(svg, diagram.coverage);
+  drawRouteOverlay(svg, displayPlayers, diagram.routes);
+  displayPlayers.forEach(p => drawPlayer(svg, p));
+  drawFootball(svg, diagram.ballX);
+  wrap.appendChild(svg);
+  container.appendChild(wrap);
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  legend.innerHTML = `
+    <span><span class="dot" style="background:${COLORS.ol}"></span>O-Line</span>
+    <span><span class="dot" style="background:${COLORS.qb}"></span>QB</span>
+    <span><span class="dot" style="background:${COLORS.rb}"></span>RB / FB</span>
+    <span><span class="dot" style="background:${COLORS.wr}"></span>WR1 / WR2 / WR3</span>
+    <span><span class="dot" style="background:${COLORS.te}"></span>TE / Wing</span>
+    <span><span class="dot" style="background:${COLORS.mike}"></span>Mike</span>`;
+  container.appendChild(legend);
+  return svg;
+}
+
+/* =========================================================================
+   PLAYER SETS (original coordinate diagrams — x,y in the 800x480 viewBox)
+   OL is always: LT(320) LG(360) C(400) RG(440) RT(480) at y=LOS_Y
+   ========================================================================= */
+function baseOL(y){
+  return [
+    {x:320,y:y,label:"LT",type:"ol"},
+    {x:360,y:y,label:"LG",type:"ol"},
+    {x:400,y:y,label:"C",type:"ol"},
+    {x:440,y:y,label:"RG",type:"ol"},
+    {x:480,y:y,label:"RT",type:"ol"},
+  ];
+}
+
+const F = {
+  iForm: () => [
+    ...baseOL(LOS_Y),
+    {x:520,y:LOS_Y,label:"TE",type:"skill"},
+    {x:80,y:LOS_Y,label:"SE",type:"skill"},
+    {x:650,y:LOS_Y,label:"FL",type:"skill"},
+    {x:400,y:LOS_Y+22,label:"QB",type:"back"},
+    {x:400,y:LOS_Y+55,label:"FB",type:"back"},
+    {x:400,y:LOS_Y+82,label:"TB",type:"back"},
+  ],
+  singleback: () => [
+    ...baseOL(LOS_Y),
+    {x:520,y:LOS_Y,label:"TE",type:"skill"},
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:650,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+20,label:"QB",type:"back"},
+    {x:345,y:LOS_Y+58,label:"RB",type:"back"},
+  ],
+  shotgun2x2Balanced: () => [
+    ...baseOL(LOS_Y),
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:190,y:LOS_Y,label:"WR",type:"skill"},
+    {x:610,y:LOS_Y,label:"WR",type:"skill"},
+    {x:720,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+65,label:"QB",type:"back"},
+    {x:400,y:LOS_Y+95,label:"RB",type:"back"},
+  ],
+  shotgun2x2RBRight: () => [
+    ...baseOL(LOS_Y),
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:190,y:LOS_Y,label:"WR",type:"skill"},
+    {x:610,y:LOS_Y,label:"WR",type:"skill"},
+    {x:720,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+65,label:"QB",type:"back"},
+    {x:460,y:LOS_Y+90,label:"RB",type:"back"},
+  ],
+  trips: () => [
+    ...baseOL(LOS_Y),
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:560,y:LOS_Y,label:"WR",type:"skill"},
+    {x:640,y:LOS_Y,label:"WR",type:"skill"},
+    {x:720,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+65,label:"QB",type:"back"},
+    {x:340,y:LOS_Y+90,label:"RB",type:"back"},
+  ],
+  twinsTE: () => [
+    ...baseOL(LOS_Y),
+    {x:280,y:LOS_Y,label:"TE",type:"skill"},
+    {x:620,y:LOS_Y,label:"WR",type:"skill"},
+    {x:720,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+20,label:"QB",type:"back"},
+    {x:352,y:LOS_Y+58,label:"RB",type:"back"},
+  ],
+  empty32: () => [
+    ...baseOL(LOS_Y),
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:160,y:LOS_Y,label:"WR",type:"skill"},
+    {x:230,y:LOS_Y,label:"WR",type:"skill"},
+    {x:650,y:LOS_Y,label:"WR",type:"skill"},
+    {x:720,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+65,label:"QB",type:"back"},
+  ],
+  pistol: () => [
+    ...baseOL(LOS_Y),
+    {x:520,y:LOS_Y,label:"TE",type:"skill"},
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:640,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+50,label:"QB",type:"back"},
+    {x:400,y:LOS_Y+82,label:"RB",type:"back"},
+  ],
+  wingT: () => [
+    ...baseOL(LOS_Y),
+    {x:520,y:LOS_Y,label:"TE",type:"skill"},
+    {x:560,y:LOS_Y+16,label:"WB",type:"skill"},
+    {x:80,y:LOS_Y,label:"SE",type:"skill"},
+    {x:400,y:LOS_Y+18,label:"QB",type:"back"},
+    {x:400,y:LOS_Y+42,label:"FB",type:"back"},
+    {x:335,y:LOS_Y+62,label:"HB",type:"back"},
+  ],
+  wildcat: () => [
+    ...baseOL(LOS_Y),
+    {x:520,y:LOS_Y,label:"TE",type:"skill"},
+    {x:560,y:LOS_Y+16,label:"WING",type:"skill"},
+    {x:80,y:LOS_Y,label:"WR",type:"skill"},
+    {x:400,y:LOS_Y+45,label:"RB*",type:"back"},
+    {x:460,y:LOS_Y+58,label:"UP",type:"back"},
+  ],
+};
+
+/* =========================================================================
+   MIKE ALIGNMENT RULE (as taught to trainees, shown as a persistent note):
+   1) Find formation strength: an in-line TE almost always sets it. With
+      no TE, count receivers/backs — the side with more is strong. If truly
+      balanced, the backfield set (or just staying true middle) decides it.
+   2) Mike lines up in the "box," roughly 4-4.5 yards off the ball, and
+      shades from true-middle toward the strength side — he does NOT chase
+      out to receiver alignments; he stays inside, over the strong A/B gap.
+   ========================================================================= */
+const RULE_NOTE = "Install: point strength first, then key guard-to-near-back. Mike stays in the box at roughly 4 to 4.5 yards, shades toward strength, reads pull/zone/pass tells, and fits open window to flow.";
+
+/* =========================================================================
+   QUESTION BANK
+   ========================================================================= */
+const QUESTIONS = [
+  // ---------- FORMATION ID ----------
+  {
+    type:"formation", difficulty:"basic",
+    players: F.iForm(),
+    prompt:"Which formation is shown?",
+    choices:["I-Formation","Singleback (Ace)","Wing-T","Pistol"],
+    answer:"I-Formation",
+    explain:"Fullback and tailback stacked directly behind the QB in a straight line, under center — that's the classic I-Formation."
+  },
+  {
+    type:"formation", difficulty:"basic",
+    players: F.singleback(),
+    prompt:"Which formation is shown?",
+    choices:["Singleback (Ace)","I-Formation","Trips (3x1)","Empty"],
+    answer:"Singleback (Ace)",
+    explain:"One running back set about 5 yards deep behind the QB, with a TE and a receiver on each side — this is Singleback / Ace."
+  },
+  {
+    type:"formation", difficulty:"basic",
+    players: F.shotgun2x2Balanced(),
+    prompt:"Which formation is shown?",
+    choices:["Shotgun Spread (2x2)","Pistol","Wing-T","Wildcat"],
+    answer:"Shotgun Spread (2x2)",
+    explain:"QB set in shotgun depth with two receivers split evenly to each side and the RB next to him — a balanced 2x2 shotgun spread look."
+  },
+  {
+    type:"formation", difficulty:"basic",
+    players: F.pistol(),
+    prompt:"Which formation is shown?",
+    choices:["Pistol","Shotgun Spread","I-Formation","Singleback"],
+    answer:"Pistol",
+    explain:"QB is only 3-4 yards deep (shorter than full shotgun) with the RB stacked directly behind him — the signature Pistol alignment."
+  },
+  {
+    type:"formation", difficulty:"basic",
+    players: F.trips(),
+    prompt:"Which formation is shown?",
+    choices:["Trips (3x1)","Twins","Empty","Ace"],
+    answer:"Trips (3x1)",
+    explain:"Three receivers bunched to one side with a single receiver isolated backside — that receiver split pattern is Trips."
+  },
+  {
+    type:"formation", difficulty:"advanced",
+    players: F.empty32(),
+    prompt:"Which formation is shown?",
+    choices:["Empty Backfield","Shotgun Spread (2x2)","Trips","Pistol"],
+    answer:"Empty Backfield",
+    explain:"No running back in the backfield at all — five receivers spread across the formation. That's Empty."
+  },
+  {
+    type:"formation", difficulty:"advanced",
+    players: F.wingT(),
+    prompt:"Which formation is shown?",
+    choices:["Wing-T","I-Formation","Wildcat","Twins"],
+    answer:"Wing-T",
+    explain:"A tight, compressed look with a TE, a wingback just outside the TE, and a fullback/halfback combo behind the QB — the Wing-T."
+  },
+  {
+    type:"formation", difficulty:"advanced",
+    players: F.wildcat(),
+    prompt:"Which formation is shown?",
+    choices:["Wildcat","Wing-T","Pistol","Trips"],
+    answer:"Wildcat",
+    explain:"The direct-snap runner lines up in the regular QB run-alignment spot with an up-back and a wing man stacked strong — a Wildcat look."
+  },
+
+  // ---------- PLAY TYPE / PRE-SNAP READ ----------
+  {
+    type:"playtype", difficulty:"basic",
+    players: F.shotgun2x2RBRight(),
+    read:"Balanced 2x2 splits, receivers at normal (tight) width, RB leans toward the strength side, no pre-snap motion.",
+    prompt:"What's the most likely play type?",
+    choices:["Inside Zone","Four Verticals","Bubble Screen","Play-Action Boot"],
+    answer:"Inside Zone",
+    explain:"Tight receiver splits and a downhill-leaning back are classic run tells. Inside Zone — line steps play-side and doubles up to the second level — is the bread-and-butter call from this look."
+  },
+  {
+    type:"playtype", difficulty:"basic",
+    players: F.iForm(),
+    read:"FB and TB stacked tight behind the QB, TE in-line, both WRs on the LOS with tight splits, no misdirection shown pre-snap.",
+    prompt:"What's the most likely play type?",
+    choices:["Power","Four Verticals","Bubble Screen","Draw"],
+    answer:"Power",
+    explain:"Two-back I-formation with tight splits screams downhill gap run. Power — playside down-blocks, FB kicks the edge, backside guard pulls to lead — is the signature I-form call."
+  },
+  {
+    type:"playtype", difficulty:"basic",
+    players: F.trips(),
+    read:"Trips-side receivers widen well past their normal splits pre-snap; the single backside WR stays tight and squares up like he's going to block.",
+    prompt:"What's the most likely play type?",
+    choices:["Bubble Screen","Inside Zone","Counter","Four Verticals"],
+    answer:"Bubble Screen",
+    explain:"Widened trips splits plus a backside receiver setting up to block are the classic pre-snap tip for a bubble/perimeter screen to the trips side."
+  },
+  {
+    type:"playtype", difficulty:"advanced",
+    players: F.empty32(),
+    read:"No back in the backfield, all five receivers split wide, defense shows a two-high safety shell.",
+    prompt:"What's the most likely play type?",
+    choices:["Four Verticals","Power","Iso","Draw"],
+    answer:"Four Verticals",
+    explain:"Empty backfield versus two-high safeties is a classic vertical-stretch alignment — Four Verts attacks the seams before the safeties can rotate."
+  },
+  {
+    type:"playtype", difficulty:"advanced",
+    players: F.singleback(),
+    read:"Just before the snap, the backside slot receiver goes in full-speed jet motion across the formation toward the TE side.",
+    prompt:"What's the most likely play type?",
+    choices:["Jet Sweep / Jet RPO","Four Verticals","Draw","Screen"],
+    answer:"Jet Sweep / Jet RPO",
+    explain:"Fast pre-snap motion across the formation, timed to arrive at the mesh point with the QB, is the signature tip for a jet sweep or jet-RPO look."
+  },
+  {
+    type:"playtype", difficulty:"advanced",
+    players: F.shotgun2x2Balanced(),
+    read:"RB stays in to help protect, both outside receivers release vertically off the line, QB sets up at a deeper gun depth than usual.",
+    prompt:"What's the most likely play type?",
+    choices:["Dropback Pass (verticals concept)","Inside Zone","Power","Bubble Screen"],
+    answer:"Dropback Pass (verticals concept)",
+    explain:"A back staying in to protect plus vertical releases and extra QB depth all point to a drop-back passing concept rather than a run."
+  },
+  {
+    type:"playtype", difficulty:"advanced",
+    players: F.iForm(),
+    read:"FB fakes an iso/dive up the middle; QB opens like the same run play, then rolls out the opposite direction as the TE releases downfield.",
+    prompt:"What's the most likely play type?",
+    choices:["Play-Action Pass (Boot)","Draw","Inside Zone","Screen"],
+    answer:"Play-Action Pass (Boot)",
+    explain:"A run fake up the middle followed by the QB rolling away from it while the TE releases downfield is a textbook play-action bootleg."
+  },
+  {
+    type:"playtype", difficulty:"advanced",
+    players: F.shotgun2x2RBRight(),
+    read:"RB takes an initial lead step toward the call side, then counter-steps back; the backside guard pulls and leads through the opposite hole.",
+    prompt:"What's the most likely play type?",
+    choices:["Counter","Outside Zone","Screen","Four Verticals"],
+    answer:"Counter",
+    explain:"The counter-step by the back combined with a pulling backside guard leading through the opposite gap is classic misdirection Counter action."
+  },
+
+  // ---------- MIKE ALIGNMENT (drag) ----------
+  {
+    type:"mike", difficulty:"basic",
+    players: F.iForm(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:430,y:280}, radius:55,
+    explain:"TE is on the right, and the FB/TB are stacked evenly behind the QB — nothing in the backfield shifts strength further, so strength is simply TE-right. Mike shades about a yard right of center, staying tight to the box, ~4.5 yards deep."
+  },
+  {
+    type:"mike", difficulty:"basic",
+    players: F.singleback(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:428,y:280}, radius:55,
+    explain:"TE right sets the strength call. The single back is offset weak (away from the TE) to help the backside — that doesn't change strength, so Mike still shades right toward the TE."
+  },
+  {
+    type:"mike", difficulty:"basic",
+    players: F.shotgun2x2Balanced(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:400,y:278}, radius:50,
+    explain:"No TE, receivers split evenly 2x2, and the back is stacked directly behind the QB — nothing declares a strength side. This is the 'true middle' case: Mike sits right over the ball, ~4.5 yards deep."
+  },
+  {
+    type:"mike", difficulty:"basic",
+    players: F.trips(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:445,y:278}, radius:55,
+    explain:"Three receivers to the right make that the strength side by count, even without a TE. Mike shades further toward trips than he would for a single TE — but he still stays inside the tackle box, not out toward the receivers."
+  },
+  {
+    type:"mike", difficulty:"basic",
+    players: F.twinsTE(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:372,y:280}, radius:55,
+    explain:"An in-line TE creates an extra gap and almost always wins the strength call over receiver splits — even against twins on the other side. Mike shades toward the tight end (left here)."
+  },
+  {
+    type:"mike", difficulty:"advanced",
+    players: F.empty32(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:365,y:278}, radius:55,
+    explain:"No backs and no TE means strength is set purely by receiver count. Three receivers to the left makes that the strong side, so Mike shades left while staying centered in the box."
+  },
+  {
+    type:"mike", difficulty:"advanced",
+    players: F.wingT(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:452,y:283}, radius:55,
+    explain:"TE and wingback stacked on the same side stack two extra gap/blocker threats there — a strong strength call. Mike shades further than a simple one-TE look, but still stays inside, reading the strong guard-center gap."
+  },
+  {
+    type:"mike", difficulty:"advanced",
+    players: F.wildcat(),
+    prompt:"Drag the Mike (M) to where he should align pre-snap.",
+    correct:{x:447,y:281}, radius:55,
+    explain:"Strength is declared the same way even in Wildcat: count the extra gap-creators. TE and the wing man both stack the right side, so Mike shades there and prepares for power/counter action."
+  },
+];
+
+/* =========================================================================
+   GENERATED INSTALL BANK
+   Research basis used for this layer:
+   - formations: I, Pro Set, Singleback/Ace, Shotgun, Trips, Bunch, Empty,
+     Pistol, Wing-T, Flexbone, Wildcat, and Goal Line/Jumbo families.
+   - Mike install keys: point strength by TE/extra surface or eligible count,
+     read guard-to-near-back, confirm flow, react to pull/zone/pass tells.
+   ========================================================================= */
+F.proSet = () => [
+  ...baseOL(LOS_Y), {x:520,y:LOS_Y,label:"TE",type:"skill"}, {x:90,y:LOS_Y,label:"WR",type:"skill"}, {x:665,y:LOS_Y,label:"WR",type:"skill"},
+  {x:400,y:LOS_Y+22,label:"QB",type:"back"}, {x:360,y:LOS_Y+66,label:"HB",type:"back"}, {x:440,y:LOS_Y+66,label:"FB",type:"back"},
+];
+F.aceDoubles = () => [
+  ...baseOL(LOS_Y), {x:280,y:LOS_Y,label:"TE",type:"skill"}, {x:520,y:LOS_Y,label:"TE",type:"skill"}, {x:90,y:LOS_Y,label:"WR",type:"skill"}, {x:670,y:LOS_Y,label:"WR",type:"skill"},
+  {x:400,y:LOS_Y+20,label:"QB",type:"back"}, {x:400,y:LOS_Y+64,label:"RB",type:"back"},
+];
+F.bunchTrips = () => [
+  ...baseOL(LOS_Y), {x:90,y:LOS_Y,label:"X",type:"skill"}, {x:590,y:LOS_Y,label:"Z",type:"skill"}, {x:642,y:LOS_Y,label:"Y",type:"skill"}, {x:666,y:LOS_Y+18,label:"H",type:"skill"},
+  {x:400,y:LOS_Y+65,label:"QB",type:"back"}, {x:342,y:LOS_Y+90,label:"RB",type:"back"},
+];
+F.emptyQuads = () => [
+  ...baseOL(LOS_Y), {x:80,y:LOS_Y,label:"X",type:"skill"}, {x:510,y:LOS_Y,label:"H",type:"skill"}, {x:585,y:LOS_Y,label:"Y",type:"skill"}, {x:660,y:LOS_Y,label:"Z",type:"skill"}, {x:735,y:LOS_Y,label:"S",type:"skill"},
+  {x:400,y:LOS_Y+65,label:"QB",type:"back"},
+];
+F.flexbone = () => [
+  ...baseOL(LOS_Y), {x:80,y:LOS_Y,label:"WR",type:"skill"}, {x:720,y:LOS_Y,label:"WR",type:"skill"},
+  {x:400,y:LOS_Y+18,label:"QB",type:"back"}, {x:400,y:LOS_Y+48,label:"FB",type:"back"}, {x:315,y:LOS_Y+36,label:"SB",type:"back"}, {x:485,y:LOS_Y+36,label:"SB",type:"back"},
+];
+F.goalLine = () => [
+  ...baseOL(LOS_Y), {x:280,y:LOS_Y,label:"TE",type:"skill"}, {x:520,y:LOS_Y,label:"TE",type:"skill"}, {x:250,y:LOS_Y+14,label:"Y",type:"skill"}, {x:550,y:LOS_Y+14,label:"Y",type:"skill"},
+  {x:400,y:LOS_Y+20,label:"QB",type:"back"}, {x:380,y:LOS_Y+52,label:"FB",type:"back"}, {x:420,y:LOS_Y+78,label:"TB",type:"back"},
+];
+
+const SESSION_LENGTH = { basic:15, all:25 };
+const DOWNS = [1,2,3,4];
+const DISTANCES = Array.from({length:20},(_,i) => i + 1);
+
+function makeScenario(phase, downPool = DOWNS, distancePool = DISTANCES){
+  const down = rand(downPool);
+  const distance = rand(distancePool);
+  const ballSide = rand(["left","right"]);
+  const wideSide = ballSide === "left" ? "right" : "left";
+  const hashBase = ballSide === "left" ? 280 : 520;
+  return {
+    down,
+    distance,
+    phase:phase || rand(["run","pass"]),
+    ballSide,
+    wideSide,
+    strengthCall:wideSide === "right" ? "RIP" : "LIGHTNING",
+    ballX:hashBase + rand([-14,-8,-2,5,11])
+  };
+}
+
+const ROUTE_TREE = [
+  {number:1,name:"Flat",points:[[0,0],[0,-22],[48,-22]]},
+  {number:2,name:"Slant",points:[[0,0],[0,-28],[-44,-68]]},
+  {number:3,name:"Comeback",points:[[0,0],[0,-82],[22,-94]]},
+  {number:4,name:"Curl / Hook",points:[[0,0],[0,-72],[-12,-78]]},
+  {number:5,name:"Out",points:[[0,0],[0,-70],[52,-70]]},
+  {number:6,name:"Dig",points:[[0,0],[0,-88],[-66,-88]]},
+  {number:7,name:"Corner",points:[[0,0],[0,-102],[64,-145]]},
+  {number:8,name:"Post",points:[[0,0],[0,-104],[-62,-147]]},
+  {number:9,name:"Go",points:[[0,0],[0,-178]]},
+  {number:"S",name:"Seam",points:[[0,0],[0,-142],[22,-166]]},
+];
+
+const COVERAGES = [
+  {
+    id:"cover2", label:"Cover 2 Zone", difficulty:"basic",
+    zones:[
+      {x:24,y:62,w:366,h:128,label:"DEEP HALF"},{x:410,y:62,w:366,h:128,label:"DEEP HALF"},
+      {x:24,y:205,w:128,h:108,label:"FLAT"},{x:152,y:205,w:184,h:108,label:"HOOK / CURL"},
+      {x:336,y:205,w:128,h:108,label:"HOOK"},{x:464,y:205,w:184,h:108,label:"HOOK / CURL"},{x:648,y:205,w:128,h:108,label:"FLAT"}
+    ],
+    explain:"Cover 2 gives each safety a deep half. Corners own the flats while underneath defenders carry the hook/curl windows."
+  },
+  {
+    id:"cover3", label:"Cover 3 Zone", difficulty:"basic",
+    zones:[
+      {x:24,y:62,w:250,h:128,label:"DEEP THIRD"},{x:275,y:62,w:250,h:128,label:"DEEP THIRD"},{x:526,y:62,w:250,h:128,label:"DEEP THIRD"},
+      {x:24,y:205,w:128,h:108,label:"FLAT"},{x:152,y:205,w:184,h:108,label:"HOOK / CURL"},{x:336,y:205,w:128,h:108,label:"HOOK"},{x:464,y:205,w:184,h:108,label:"HOOK / CURL"},{x:648,y:205,w:128,h:108,label:"FLAT"}
+    ],
+    explain:"Cover 3 divides the deep field into thirds and keeps four defenders underneath in flat, hook, and curl zones."
+  },
+  {
+    id:"quarters", label:"Cover 4 / Quarters", difficulty:"advanced",
+    zones:[
+      {x:24,y:62,w:188,h:128,label:"QUARTER"},{x:212,y:62,w:188,h:128,label:"QUARTER"},{x:400,y:62,w:188,h:128,label:"QUARTER"},{x:588,y:62,w:188,h:128,label:"QUARTER"},
+      {x:24,y:205,w:184,h:108,label:"CURL / FLAT"},{x:208,y:205,w:184,h:108,label:"HOOK"},{x:400,y:205,w:184,h:108,label:"HOOK"},{x:584,y:205,w:192,h:108,label:"CURL / FLAT"}
+    ],
+    explain:"Quarters uses four deep defenders, with the underneath players protecting hook and curl/flat windows."
+  },
+  {
+    id:"cover1", label:"Cover 1 Man-Free", difficulty:"advanced",
+    zones:[{x:24,y:74,w:752,h:228,label:"MAN / MIDDLE CLOSED"}],
+    explain:"Cover 1 is man coverage with one deep safety. The middle is closed, so leverage and separation decide the throw."
+  }
+];
+
+const PASS_CONCEPTS = [
+  {name:"Curl / Flat", answer:"Curl / Hook", routes:["Curl / Hook","Flat"], choices:["Curl / Hook","Flat","Post","Go"], explain:"The curl and flat stretch the underneath defender horizontally. If the defender widens, throw the curl window."},
+  {name:"Smash", answer:"Corner", routes:["Corner","Curl / Hook"], choices:["Corner","Curl / Hook","Dig","Go"], explain:"Smash pairs a corner with a short curl or hitch to high-low the outside defender."},
+  {name:"Four Verticals", answer:"Seam", routes:["Seam","Post","Seam"], choices:["Seam","Curl / Hook","Flat","Dig"], explain:"Vertical releases stress the seams between deep zones, especially when the safeties widen."},
+  {name:"Flood", answer:"Corner", routes:["Go","Corner","Flat"], choices:["Corner","Flat","Dig","Curl / Hook"], explain:"Flood puts three routes at different depths on one side to outnumber a deep outside zone."},
+  {name:"Drive", answer:"Dig", routes:["Dig","Curl / Hook","Flat"], choices:["Dig","Post","Go","Flat"], explain:"Drive creates a horizontal stretch with a shallow route underneath an intermediate dig."}
+];
+
+const GENERATED_MIX = {
+  basic:{formation:3, playtype:6, mike:4, coverage:2},
+  all:{formation:5, playtype:10, mike:6, coverage:4},
+};
+
+const FORMATIONS = [
+  {id:"iForm", name:"I-Formation", difficulty:"basic", draw:F.iForm, families:["zone","gap","playAction","quick"], presnap:"Under center with FB and TB stacked, TE right, and tight receiver splits.", explain:"Fullback and tailback stack behind the QB, which is the classic I-Formation.", mike:{x:430,y:280,radius:55,point:"TE right declares the strong surface.", eye:"Guard to near back: strong guard, then FB/TB flow.", fit:"Shade strong A/B; expect iso, power, and boot off run action."}},
+  {id:"proSet", name:"Pro Set / Split Backs", difficulty:"basic", draw:F.proSet, families:["zone","gap","screen","quick","playAction"], presnap:"Under center with two backs split behind the QB and one TE on the right.", explain:"Two backs split behind the quarterback create the balanced Pro Set picture.", mike:{x:424,y:280,radius:55,point:"TE side wins an otherwise balanced two-back set.", eye:"Read guard first, then split-back flow.", fit:"Stay square in the box and do not overrun split flow."}},
+  {id:"singleback", name:"Singleback Ace", difficulty:"basic", draw:F.singleback, families:["zone","gap","quick","dropback","playAction"], presnap:"One back, QB under center, TE right, balanced outside receivers.", explain:"One back behind the quarterback with a tight end attached creates Singleback/Ace.", mike:{x:428,y:280,radius:55,point:"Attached TE right creates the extra gap.", eye:"Strong guard to near back; confirm the offset back does not change strength.", fit:"Shade TE side and sit ready for zone, split zone, or boot."}},
+  {id:"shotgun2x2Balanced", name:"Shotgun Spread 2x2", difficulty:"basic", draw:F.shotgun2x2Balanced, families:["zone","option","quick","dropback","screen","rpo"], presnap:"Shotgun 2x2 with the back stacked behind the QB and even receiver count.", explain:"Two receivers to each side with shotgun depth is a balanced 2x2 spread set.", mike:{x:400,y:278,radius:50,point:"No TE and even receiver count means true middle.", eye:"In gun, key QB/back mesh after the guard read.", fit:"Square over the ball; do not chase slot width."}},
+  {id:"shotgun2x2RBRight", name:"Shotgun 2x2 Offset", difficulty:"basic", draw:F.shotgun2x2RBRight, families:["zone","option","quick","dropback","screen","rpo"], presnap:"Shotgun 2x2 with the running back offset right of the quarterback.", explain:"The offset back changes the run and RPO picture without changing the 2x2 shell.", mike:{x:414,y:278,radius:52,point:"Even receivers; back offset gives the first practical lean.", eye:"Guard to QB/back mesh; watch zone read and bubble tags.", fit:"Slight shade to back strength but stay inside the tackles."}},
+  {id:"trips", name:"Trips 3x1", difficulty:"basic", draw:F.trips, families:["quick","dropback","screen","rpo","playAction","zone"], presnap:"Three receivers to the right, one isolated receiver backside, RB offset weak.", explain:"Three eligible receivers to one side creates a trips overload.", mike:{x:445,y:278,radius:55,point:"Receiver count makes trips the strength.", eye:"Guard first, then trips-side No. 2/No. 3 release.", fit:"Shade toward trips, but stay in the tackle box."}},
+  {id:"twinsTE", name:"Twins with TE", difficulty:"basic", draw:F.twinsTE, families:["zone","gap","quick","playAction","screen"], presnap:"Tight end attached left with two wide receivers split to the right.", explain:"The TE is attached left while twins sit to the opposite side.", mike:{x:372,y:280,radius:55,point:"Attached TE normally beats receiver count for run strength.", eye:"Left guard to back flow; alert crack from twins.", fit:"Shade TE left, not all the way to the twins."}},
+  {id:"pistol", name:"Pistol", difficulty:"basic", draw:F.pistol, families:["zone","gap","option","playAction","rpo"], presnap:"QB at pistol depth with the RB stacked behind him and TE attached right.", explain:"The QB is shorter than shotgun and the RB is directly behind him.", mike:{x:426,y:280,radius:55,point:"TE right sets strength; pistol keeps run two-way.", eye:"Guard to back path; confirm mesh before committing.", fit:"Shade right but keep shoulders square for cutback."}},
+  {id:"aceDoubles", name:"Ace Double Tight", difficulty:"advanced", draw:F.aceDoubles, families:["zone","gap","playAction","quick"], presnap:"Singleback with tight ends attached on both sides and two wideouts outside.", explain:"Double tight ends with a single back create a balanced heavy Ace look.", mike:{x:400,y:280,radius:52,point:"Balanced surfaces make the ball the point.", eye:"Both guards matter; near back gives the second key.", fit:"Stay true middle until flow declares the fit."}},
+  {id:"bunchTrips", name:"Bunch Trips", difficulty:"advanced", draw:F.bunchTrips, families:["quick","dropback","screen","rpo","playAction"], presnap:"Trips bunch to the right with three eligible receivers packed tight.", explain:"A tight three-man cluster creates bunch trips, built for rubs, screens, and flood.", mike:{x:450,y:278,radius:55,point:"Bunch count and compressed blockers declare strength.", eye:"Guard to near back, then No. 3 release for pass/run conflict.", fit:"Shade trips but stay patient against fast screen or mesh."}},
+  {id:"empty32", name:"Empty 3x2", difficulty:"advanced", draw:F.empty32, families:["quick","dropback","screen"], presnap:"No back in the backfield, three receivers left and two receivers right.", explain:"Five eligible receivers with no back creates Empty, here with a 3x2 distribution.", mike:{x:365,y:278,radius:55,point:"No TE/back means strength comes from receiver count.", eye:"Guards tell pass/run; No. 3 is the conflict key.", fit:"Shade to the three-receiver side but stay available for QB draw."}},
+  {id:"emptyQuads", name:"Empty Quads", difficulty:"advanced", draw:F.emptyQuads, families:["quick","dropback","screen","trick"], presnap:"Empty backfield with four receivers overloaded to the right.", explain:"Quads puts four eligibles to one side and forces fast communication.", mike:{x:455,y:278,radius:56,point:"Four-receiver overload declares strength immediately.", eye:"Pass set plus No. 3/No. 4 release; alert QB draw.", fit:"Cheat toward quads while protecting the box."}},
+  {id:"wingT", name:"Wing-T", difficulty:"advanced", draw:F.wingT, families:["gap","option","playAction","motion"], presnap:"Compressed set with TE and wing right plus FB/HB backfield action.", explain:"TE plus wingback, fullback, and halfback create the old-school Wing-T surface.", mike:{x:452,y:283,radius:55,point:"TE plus wing stacks extra gaps to the right.", eye:"Guard to near back; pull and backfield flow can lie.", fit:"Strong shade with slow eyes for buck, belly, and counter."}},
+  {id:"flexbone", name:"Flexbone", difficulty:"advanced", draw:F.flexbone, families:["option","gap","playAction"], presnap:"Under center with a fullback behind the QB and two slot backs near the tackles.", explain:"Fullback plus two slot backs creates the flexbone option structure.", mike:{x:400,y:280,radius:55,point:"Balanced slots make the ball the point.", eye:"Triangle key: guard, fullback, then QB pitch phase.", fit:"Stay square; do not widen until option flow declares."}},
+  {id:"wildcat", name:"Wildcat", difficulty:"advanced", draw:F.wildcat, families:["gap","option","motion","trick"], presnap:"Direct-snap runner with up-back and wing to the right.", explain:"A non-QB runner aligned for direct snap with extra blockers is a Wildcat look.", mike:{x:447,y:281,radius:55,point:"TE/wing/up-back stack the right side.", eye:"Guard pull plus direct-snap runner path.", fit:"Shade strong and expect power, counter, or sweep."}},
+  {id:"goalLine", name:"Goal Line Heavy", difficulty:"advanced", draw:F.goalLine, families:["gap","playAction","quick"], presnap:"Double tight heavy surface with extra tight bodies near the line.", explain:"Multiple tight ends and backs packed inside create a goal-line heavy set.", mike:{x:400,y:282,radius:54,point:"Balanced heavy surfaces keep Mike centered.", eye:"Both guards, fullback insertion, then TE pop release.", fit:"Low pad level over the ball; first open interior window."}},
+];
+
+const FAMILY_INFO = {
+  zone:{label:"Zone run", cue:["OL steps laterally together and the back presses a track before cutting.", "The line shows combo blocks and the RB aims for a landmark, not a fixed hole.", "Backfield path is one-cut with the front stretching horizontally."], explain:"Zone concepts make the Mike press flow, find the open window, and protect cutback."},
+  gap:{label:"Gap run", cue:["A guard or tackle pulls and the back aims downhill behind a lead blocker.", "Down blocks show at the point with a kick-out or wrap player coming.", "The backfield is downhill and the blocking scheme creates a named gap."], explain:"Gap concepts tell the Mike to track pullers and fit inside-out on the lead blocker."},
+  option:{label:"Option", cue:["The QB and back mesh long enough to read an unblocked defender.", "Backfield action shows read mesh with a pitch, keep, or give threat.", "The offense leaves a defender unblocked and makes him wrong."], explain:"Option football forces the Mike to stay square and fit his phase without guessing."},
+  quick:{label:"Quick game", cue:["Receivers reduce splits and the QB is set for rhythm timing.", "The ball is designed to come out fast off slants, hitches, sticks, or outs.", "Inside receivers present quick leverage routes against underneath zones."], explain:"Quick game stresses underneath windows before the rush can arrive."},
+  dropback:{label:"Dropback pass", cue:["The back scans protection while receivers push vertical stems into route spacing.", "QB depth and pass sets point to a true progression concept.", "The release pattern attacks multiple levels instead of one immediate throw."], explain:"Dropback concepts ask the Mike to read pass set and find the hook/crossing window."},
+  screen:{label:"Screen", cue:["Receivers widen or bunch for blocking leverage while the line invites rush.", "A skill player shows fast access with blockers already in position.", "The back or receiver delays as linemen leak into space."], explain:"Screens punish aggressive pursuit, so the Mike has to retrace and leverage the ball."},
+  rpo:{label:"RPO", cue:["The OL shows run demeanor while the QB eyes a conflict defender.", "Box count and slot leverage create a run-pass option tag.", "The mesh is run-first, but a quick glance, bubble, or stick route is attached."], explain:"RPOs put the Mike in conflict between fitting the run and closing the quick throw window."},
+  playAction:{label:"Play action", cue:["The QB sells run action while a TE or slot slips behind linebackers.", "Backfield flow mimics the run game, then the QB boots or resets to throw.", "Run-heavy personnel uses a fake to pull second-level eyes downhill."], explain:"Play action is built to move linebacker eyes before attacking space behind them."},
+  motion:{label:"Motion", cue:["A slot or wing goes fast across the formation before the snap.", "Motion changes strength late and threatens jet, orbit, or split-flow action.", "The offense uses motion to test communication and force a bump call."], explain:"Motion questions the Mike's strength call and eye discipline before the snap."},
+  trick:{label:"Constraint", cue:["The backfield shows reverse, throwback, or misdirection after a familiar action.", "A normal run or screen look includes a delayed throwback element.", "The offense uses eye candy to attack over-pursuit."], explain:"Constraints punish linebackers who chase the first picture without confirming keys."},
+};
+
+const PLAY_NAMES = [
+  ["Inside Zone","zone","basic"],["Outside Zone","zone","basic"],["Mid Zone","zone","advanced"],["Stretch","zone","basic"],["Split Zone","zone","basic"],["Duo","zone","advanced"],["Wide Zone","zone","advanced"],["Lead Zone","zone","advanced"],["Zone Bluff","zone","advanced"],["Slice Zone","zone","advanced"],["Pin and Pull Sweep","zone","advanced"],["Toss Sweep","zone","basic"],
+  ["Power O","gap","basic"],["Iso","gap","basic"],["Counter","gap","basic"],["Counter GT","gap","advanced"],["Counter Trey","gap","advanced"],["Trap","gap","basic"],["Wham","gap","advanced"],["Buck Sweep","gap","advanced"],["Belly","gap","advanced"],["Dive","gap","basic"],["FB Iso","gap","basic"],["QB Sneak","gap","basic"],["QB Power","gap","advanced"],["Dart","gap","advanced"],["G Lead","gap","advanced"],["Toss Crack","gap","advanced"],["Y Counter","gap","advanced"],["Power Read","gap","advanced"],["GT Counter","gap","advanced"],["Draw","gap","basic"],["Lead Draw","gap","advanced"],["Sprint Draw","gap","advanced"],["Goal Line Blast","gap","basic"],
+  ["Zone Read","option","basic"],["Read Option","option","basic"],["Speed Option","option","advanced"],["Triple Option","option","advanced"],["Veer Option","option","advanced"],["Midline Option","option","advanced"],["Inverted Veer","option","advanced"],["Bash","option","advanced"],["Sweep Read","option","advanced"],["Shovel Option","option","advanced"],["Trap Option","option","advanced"],["Load Option","option","advanced"],
+  ["Slants","quick","basic"],["Stick","quick","basic"],["Spacing","quick","basic"],["Hitch","quick","basic"],["Quick Out","quick","basic"],["Speed Out","quick","basic"],["Curl Flat","quick","basic"],["Snag","quick","advanced"],["Spot","quick","advanced"],["Hank","quick","advanced"],["China","quick","advanced"],["Option Route","quick","advanced"],["Choice","quick","advanced"],["Fade","quick","basic"],["Back Shoulder Fade","quick","advanced"],
+  ["Mesh","dropback","basic"],["Shallow Cross","dropback","basic"],["Drive","dropback","advanced"],["Levels","dropback","basic"],["Dagger","dropback","advanced"],["Mills","dropback","advanced"],["Y Cross","dropback","advanced"],["Four Verticals","dropback","basic"],["All Go","dropback","basic"],["Slot Fade","dropback","advanced"],["Post Wheel","dropback","advanced"],["Corner Strike","dropback","advanced"],["Hoss Y Juke","dropback","advanced"],["Bench","dropback","advanced"],["Hi Lo","dropback","basic"],["Scissors","dropback","advanced"],["Post Dig","dropback","advanced"],["Deep Cross","dropback","advanced"],["NCAA","dropback","advanced"],["Follow","dropback","advanced"],["Texas","dropback","advanced"],["Angle","dropback","basic"],["Wheel","dropback","advanced"],["Seam Read","dropback","advanced"],["Smash","dropback","basic"],["Flood","dropback","basic"],["Sail","dropback","advanced"],["Yankee","dropback","advanced"],
+  ["Bubble Screen","screen","basic"],["Tunnel Screen","screen","basic"],["Smoke Screen","screen","basic"],["Now Screen","screen","basic"],["Jailbreak Screen","screen","advanced"],["RB Screen","screen","basic"],["Slip Screen","screen","advanced"],["TE Screen","screen","advanced"],["Swing Screen","screen","basic"],["Middle Screen","screen","advanced"],
+  ["Glance RPO","rpo","advanced"],["Stick RPO","rpo","advanced"],["Bubble RPO","rpo","basic"],["Slant Flat RPO","rpo","advanced"],["Bash RPO","rpo","advanced"],["Pop Pass","rpo","advanced"],["Peek RPO","rpo","advanced"],["Now Screen RPO","rpo","advanced"],
+  ["Play-Action Boot","playAction","basic"],["Naked Boot","playAction","advanced"],["Slide Boot","playAction","advanced"],["Flood Boot","playAction","basic"],["Swap Boot","playAction","advanced"],["Y Leak","playAction","advanced"],["TE Throwback","playAction","advanced"],["Yankee Play Action","playAction","advanced"],["Post Over PA","playAction","advanced"],["Counter Boot","playAction","advanced"],["Power Pass","playAction","advanced"],["Goal Line Pop Pass","playAction","advanced"],
+  ["Jet Sweep","motion","basic"],["Orbit Sweep","motion","advanced"],["Rocket Toss","motion","advanced"],["Fly Sweep","motion","advanced"],["Jet RPO","motion","advanced"],["Orbit Return","motion","advanced"],
+  ["Flea Flicker","trick","advanced"],["Reverse Pass","trick","advanced"],["Throwback Screen","trick","advanced"],["Hook and Ladder","trick","advanced"],["Double Pass","trick","advanced"],["Tackle Leak","trick","advanced"],
+].map(([name,family,difficulty]) => ({name,family,difficulty}));
+
+/* =========================================================================
+   STATE / ENGINE
+   ========================================================================= */
+let deck = [];
+let idx = 0;
+let score = 0;
+let correctCount = 0;
+let streak = 0;
+let bestStreak = 0;
+let currentDifficulty = "basic"; // 'basic' or 'all'
+let activeMode = "quiz";
+let simScore = 0;
+let simTries = 0;
+let simRep = null;
+
+function rand(items){
+  return items[Math.floor(Math.random()*items.length)];
+}
+
+function shuffle(items){
+  const copy = [...items];
+  for(let i=copy.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]] = [copy[j],copy[i]];
+  }
+  return copy;
+}
+
+function levelFilter(item){
+  return currentDifficulty === "all" || item.difficulty === "basic";
+}
+
+function makeChoices(answer, allAnswers){
+  const wrong = shuffle([...new Set(allAnswers)].filter(x => x !== answer)).slice(0,3);
+  return shuffle([answer, ...wrong]);
+}
+
+function playPool(){
+  return PLAY_NAMES.filter(levelFilter);
+}
+
+function coveragePool(){
+  return COVERAGES.filter(levelFilter);
+}
+
+function phaseForFamily(family){
+  if(["quick","dropback","screen","rpo","playAction"].includes(family)) return "pass";
+  if(["zone","gap","option"].includes(family)) return "run";
+  return undefined;
+}
+
+function scenarioForPlay(play){
+  const short = Array.from({length:6},(_,i) => i + 1);
+  const medium = Array.from({length:10},(_,i) => i + 3);
+  const mediumLong = Array.from({length:13},(_,i) => i + 5);
+  const long = Array.from({length:16},(_,i) => i + 5);
+  let downs = DOWNS;
+  let distances = DISTANCES;
+  switch(play.family){
+    case "option":
+      downs = DOWNS;
+      distances = short;
+      break;
+    case "zone":
+    case "gap":
+      distances = short;
+      break;
+    case "rpo":
+      downs = [1,2,3];
+      distances = medium;
+      break;
+    case "quick":
+      distances = medium;
+      break;
+    case "screen":
+      distances = mediumLong;
+      break;
+    case "dropback":
+      downs = [2,3,4];
+      distances = long;
+      break;
+    case "playAction":
+      downs = [1,2];
+      distances = mediumLong;
+      break;
+    case "motion":
+      downs = [1,2,3];
+      distances = medium;
+      break;
+    case "trick":
+      downs = [2,3,4];
+      distances = mediumLong;
+      break;
+  }
+  return makeScenario(phaseForFamily(play.family), downs, distances);
+}
+
+function makeRouteEntries(players, concept){
+  const receivers = labelWideReceivers(players).filter(p => playerRole(p) === "wr");
+  return receivers.map((p, i) => {
+    const route = concept.routes[i % concept.routes.length];
+    const item = ROUTE_TREE.find(r => r.name === route);
+    return {receiver:`WR${i+1}`,number:item?.number || "",route};
+  });
+}
+
+function formationPool(){
+  return FORMATIONS.filter(levelFilter);
+}
+
+function generateFormationQuestion(){
+  const pool = formationPool();
+  const form = rand(pool);
+  return {
+    type:"formation",
+    difficulty:form.difficulty,
+    players:form.draw(),
+    scenario:makeScenario(),
+    formation:form.name,
+    meta:{front:form.mike.point,center:form.mike.eye,fit:form.mike.fit},
+    prompt:"Which formation is shown?",
+    choices:makeChoices(form.name, pool.map(f => f.name)),
+    answer:form.name,
+    explain:form.explain
+  };
+}
+
+function generatePlayQuestion(){
+  const plays = playPool();
+  const play = rand(plays);
+  const info = FAMILY_INFO[play.family];
+  const forms = formationPool().filter(f => f.families.includes(play.family));
+  const form = forms.length ? rand(forms) : rand(formationPool());
+  return {
+    type:"playtype",
+    difficulty:play.difficulty,
+    players:form.draw(),
+    scenario:scenarioForPlay(play),
+    formation:form.name,
+    meta:{front:form.mike.point,center:form.mike.eye,fit:form.mike.fit},
+    read:`${form.presnap} ${rand(info.cue)}`,
+    prompt:"What's the most likely call from this look?",
+    choices:makeChoices(play.name, plays.map(p => p.name)),
+    answer:play.name,
+    explain:`${play.name} fits the ${info.label.toLowerCase()} picture. ${info.explain} Formation clue: ${form.presnap}`
+  };
+}
+
+function generateMikeQuestion(){
+  const form = rand(formationPool());
+  const alignmentRadius = Math.max(34, form.mike.radius - (form.difficulty === "advanced" ? 16 : 8));
+  return {
+    type:"mike",
+    difficulty:form.difficulty,
+    players:form.draw(),
+    scenario:makeScenario(),
+    formation:form.name,
+    meta:{front:form.mike.point,center:form.mike.eye,fit:form.mike.fit},
+    prompt:"Drag the Mike (M) to the best pre-snap alignment.",
+    correct:{x:form.mike.x,y:form.mike.y},
+    radius:alignmentRadius,
+    keys:[
+      {label:"Point key",text:form.mike.point},
+      {label:"Eye key",text:form.mike.eye},
+      {label:"Fit key",text:form.mike.fit},
+    ],
+    explain:`${form.name}: ${form.mike.point} ${form.mike.eye} ${form.mike.fit}`
+  };
+}
+
+function generateCoverageQuestion(){
+  const forms = formationPool();
+  const form = rand(forms);
+  const coverage = rand(coveragePool());
+  const concept = rand(PASS_CONCEPTS);
+  const players = form.draw();
+  return {
+    type:"coverage",
+    difficulty:coverage.difficulty,
+    players,
+    scenario:makeScenario("pass"),
+    formation:form.name,
+    coverage,
+    routes:makeRouteEntries(players, concept),
+    meta:{front:form.mike.point,center:form.mike.eye,fit:form.mike.fit},
+    prompt:`Read ${coverage.label}: which route wins the first window?`,
+    choices:makeChoices(concept.answer, concept.choices),
+    answer:concept.answer,
+    explain:`${concept.name}: ${concept.explain} ${coverage.explain}`
+  };
+}
+
+function generateQuestion(type){
+  if(type === "formation") return generateFormationQuestion();
+  if(type === "mike") return generateMikeQuestion();
+  if(type === "coverage") return generateCoverageQuestion();
+  return generatePlayQuestion();
+}
+
+function buildDeck(){
+  const mix = GENERATED_MIX[currentDifficulty];
+  const requested = [
+    ...Array(mix.formation).fill("formation"),
+    ...Array(mix.playtype).fill("playtype"),
+    ...Array(mix.mike).fill("mike"),
+    ...Array(mix.coverage).fill("coverage"),
+  ];
+  deck = shuffle(requested).map(type => generateQuestion(type)).slice(0,SESSION_LENGTH[currentDifficulty]);
+  idx = 0;
+  score = 0;
+  correctCount = 0;
+  streak = 0;
+  bestStreak = 0;
+  updateTop();
+  renderQuestion();
+}
+
+function updateTop(){
+  const isSim = activeMode === "simulation";
+  document.getElementById("scoreNum").textContent = (isSim ? simScore : score).toLocaleString();
+  document.getElementById("streakNum").textContent = isSim ? "-" : streak;
+  document.getElementById("qNum").textContent = isSim ? `${simTries}/10` : `${Math.min(idx+1,deck.length)}/${deck.length}`;
+  const pct = isSim ? (simTries/10)*100 : (deck.length ? (idx/deck.length)*100 : 0);
+  document.getElementById("progBar").style.width = pct + "%";
+}
+
+function popScore(){
+  const scoreEl = document.getElementById("scoreNum");
+  scoreEl.classList.remove("score-pop");
+  void scoreEl.offsetWidth;
+  scoreEl.classList.add("score-pop");
+}
+
+function celebrateCorrect(anchorEl, points){
+  let layer = document.querySelector(".celebration-layer");
+  if(!layer){
+    layer = document.createElement("div");
+    document.body.appendChild(layer);
+  }
+  layer.className = "celebration-layer celebrate";
+  layer.innerHTML = "";
+
+  const rect = anchorEl?.getBoundingClientRect?.();
+  const originX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+  const originY = rect ? rect.top + rect.height / 2 : Math.min(220, window.innerHeight * .35);
+  for(let i=0;i<96;i++){
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece" + (i % 7 === 0 ? " alt" : "") + (i % 5 === 0 ? " good" : "");
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 130 + Math.random() * 260;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance + 120 + Math.random() * 120;
+    piece.style.left = `${originX + (Math.random() * 24 - 12)}px`;
+    piece.style.top = `${originY + (Math.random() * 24 - 12)}px`;
+    piece.style.setProperty("--x", `${x}px`);
+    piece.style.setProperty("--y", `${y}px`);
+    piece.style.setProperty("--r", `${Math.floor(Math.random()*520 - 260)}deg`);
+    piece.style.animationDelay = `${Math.random()*120}ms`;
+    layer.appendChild(piece);
+  }
+  window.setTimeout(() => { layer.innerHTML = ""; layer.className = "celebration-layer"; }, 1700);
+}
+
+function recordResult(isCorrect, anchorEl, points, countForAccuracy = true){
+  if(isCorrect){
+    score += points;
+    if(countForAccuracy) correctCount++;
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    celebrateCorrect(anchorEl, points);
+  } else {
+    score = Math.max(0, score - 50);
+    streak = 0;
+  }
+  updateTop();
+  popScore();
+}
+
+function typeLabel(t){
+  if(t==="formation") return "Formation ID";
+  if(t==="playtype") return "Play Recognition";
+  if(t==="mike") return "Mike Alignment";
+  if(t==="coverage") return "Pass Coverage";
+  return t;
+}
+
+const SIM_RUN_FAMILIES = ["zone","gap","option","motion"];
+const RUN_GAPS = [
+  {letter:"A",label:"A Gap",between:"Center to Guard",offset:20},
+  {letter:"B",label:"B Gap",between:"Guard to Tackle",offset:60},
+  {letter:"C",label:"C Gap",between:"Tackle to Tight End",offset:100},
+  {letter:"D",label:"D Gap",between:"Outside the Tight End",offset:146}
+];
+
+function simClamp(value, min, max){
+  return Math.max(min, Math.min(max, value));
+}
+
+function simDistance(a, b){
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function simRunnerFor(players){
+  const named = players.filter(p => /RB|TB|HB|FB/.test(String(p.label || "").toUpperCase()));
+  if(named.length) return named[named.length - 1];
+  const backs = players.filter(p => playerRole(p) === "rb");
+  return backs.length ? backs[backs.length - 1] : players.find(p => playerRole(p) === "qb");
+}
+
+function setSimulationRunPath(rep, outside){
+  const gapPool = outside ? [RUN_GAPS[3]] : RUN_GAPS.slice(0,3);
+  const gap = rand(gapPool);
+  const direction = rand([-1,1]);
+  const playName = rep.play.name.toLowerCase();
+  const gapX = simClamp(rep.ballX + direction * gap.offset, 54, FW - 54);
+  const start = {x:rep.runner.x, y:displayY(rep.runner.y)};
+  const qb = rep.players.find(player => playerRole(player) === "qb");
+  const qbY = qb ? displayY(qb.y) : DISPLAY_LOS_Y - 22;
+  const handoffPoint = {
+    x:qb ? qb.x : rep.runner.x,
+    y:Math.min(DISPLAY_LOS_Y - 2, Math.max(start.y + 18, qbY + 24))
+  };
+  const meetPoint = outside
+    ? {x:gapX, y:DISPLAY_LOS_Y + 62}
+    : {x:gapX, y:DISPLAY_LOS_Y + 76};
+  const losProgress = simClamp((DISPLAY_LOS_Y + 24 - handoffPoint.y) / (meetPoint.y - handoffPoint.y), .05, .95);
+  const losPoint = {
+    x:handoffPoint.x + (meetPoint.x - handoffPoint.x) * losProgress,
+    y:DISPLAY_LOS_Y + 24
+  };
+  rep.outside = outside;
+  rep.gap = gap;
+  rep.gapSide = direction;
+  rep.gapX = gapX;
+  rep.gapLabel = `${direction < 0 ? "Left" : "Right"} ${gap.label}`;
+  rep.scheme = /power|counter|trap|iso|duo/.test(playName) ? "Gap scheme" : "Zone scheme";
+  rep.handoffPoint = handoffPoint;
+  rep.losPoint = losPoint;
+  rep.meetPoint = meetPoint;
+  rep.runPath = outside ? [
+    start,
+    handoffPoint,
+    meetPoint,
+    {x:simClamp(gapX + direction * 78, 36, FW - 36), y:DISPLAY_LOS_Y + 144}
+  ] : [
+    start,
+    handoffPoint,
+    meetPoint,
+    {x:gapX, y:DISPLAY_LOS_Y + 150}
+  ];
+  rep.idealMike = {x:gapX, y:DISPLAY_LOS_Y + 94};
+  return rep;
+}
+
+function simRunPoint(rep, progress){
+  if(progress < .34){
+    const t = progress / .34;
+    return {
+      x:rep.runPath[0].x + (rep.handoffPoint.x - rep.runPath[0].x) * t,
+      y:rep.runPath[0].y + (rep.handoffPoint.y - rep.runPath[0].y) * t
+    };
+  }
+  if(progress < .56) return rep.handoffPoint;
+  const driveProgress = (progress - .56) / .44;
+  if(driveProgress < .34) return simPointOnPath([rep.handoffPoint,rep.losPoint], driveProgress / .34);
+  const postLosProgress = Math.pow((driveProgress - .34) / .66, 1.35);
+  return simPointOnPath([rep.losPoint,rep.meetPoint,rep.runPath[3]], postLosProgress);
+}
+
+function makeSimulationRep(){
+  const forms = FORMATIONS.filter(form => form.families.some(family => SIM_RUN_FAMILIES.includes(family)));
+  const form = rand(forms);
+  const choices = PLAY_NAMES.filter(play => SIM_RUN_FAMILIES.includes(play.family) && form.families.includes(play.family));
+  const play = rand(choices.length ? choices : PLAY_NAMES.filter(play => SIM_RUN_FAMILIES.includes(play.family)));
+  const scenario = makeScenario("run", DOWNS, Array.from({length:10},(_,i) => i + 1));
+  const players = alignPlayersToBall(form.draw(), scenario.ballX);
+  const runner = simRunnerFor(players);
+  const name = play.name.toLowerCase();
+  const outside = /outside|sweep|toss|jet|orbit|rocket|wide|stretch|pin and pull/.test(name);
+  return setSimulationRunPath({
+    form,
+    play,
+    scenario,
+    ballX:scenario.ballX,
+    players,
+    runner,
+  }, outside);
+}
+
+function simPointOnPath(points, progress){
+  if(progress <= 0) return points[0];
+  if(progress >= 1) return points[points.length - 1];
+  let total = 0;
+  const lengths = [];
+  for(let i=1;i<points.length;i++){
+    const length = Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+    lengths.push(length);
+    total += length;
+  }
+  let distance = total * progress;
+  for(let i=1;i<points.length;i++){
+    const length = lengths[i-1];
+    if(distance <= length){
+      const t = length ? distance / length : 0;
+      return {
+        x:points[i-1].x + (points[i].x - points[i-1].x) * t,
+        y:points[i-1].y + (points[i].y - points[i-1].y) * t
+      };
+    }
+    distance -= length;
+  }
+  return points[points.length - 1];
+}
+
+function simRunnerToken(player, point){
+  const group = el("g",{class:"sim-runner-token",transform:`translate(${point.x},${point.y})`});
+  group.appendChild(el("circle",{class:"sim-runner-shadow",cx:0,cy:15,r:15}));
+  group.appendChild(el("circle",{class:"sim-runner",cx:0,cy:0,r:16,fill:COLORS.rb}));
+  const label = el("text",{x:0,y:4,"text-anchor":"middle","font-size":10,"font-weight":850,fill:"#07113f"});
+  label.textContent = player.label || "RB";
+  group.appendChild(label);
+  return group;
+}
+
+function simulationBlockOffset(player, rep){
+  const role = playerRole(player);
+  const side = rep.gapSide;
+  let x = side * 4;
+  let y = 8;
+  if(Math.abs(player.x - rep.gapX) < 78) x += player.x < rep.gapX ? -8 : 8;
+  const puller = side < 0 ? "RG" : "LG";
+  if(rep.scheme === "Gap scheme" && player.label === puller){
+    x = side * 58;
+    y = 22;
+  }
+  if(rep.outside && (role === "te" || player.label === "LT" || player.label === "RT")){
+    x = side * 20;
+    y = 12;
+  }
+  return {x,y};
+}
+
+function renderSimulation(){
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  updateTop();
+  if(simTries >= 10){
+    renderSimulationEnd();
+    return;
+  }
+
+  const rep = makeSimulationRep();
+  simRep = rep;
+  const card = document.createElement("section");
+  card.className = "card sim-card";
+  card.innerHTML = `
+    <div class="sim-head">
+      <div>
+        <div class="sim-kicker">Run Simulation</div>
+        <div class="sim-title">Set the Mike. Find the runner.</div>
+        <div class="sim-copy">Set your fit, then control Mike through the handoff.</div>
+      </div>
+      <div class="sim-stats">
+        <div class="sim-stat"><strong>${simTries + 1}/10</strong><span>Try</span></div>
+        <div class="sim-stat"><strong>${simScore}</strong><span>Points</span></div>
+      </div>
+    </div>
+    <div class="sim-meta">
+      <span>${rep.form.name}</span>
+      <span>${rep.play.name}</span>
+      <span>Run: ${rep.outside ? "Outside" : "Interior"}</span>
+      <span>${["","1st","2nd","3rd","4th"][rep.scenario.down]} &amp; ${rep.scenario.distance}</span>
+      <span>Gap: ${rep.gapLabel}</span>
+      <span>${rep.scheme}</span>
+    </div>`;
+  const fieldHolder = document.createElement("div");
+  fieldHolder.className = "field-holder";
+  const wrap = document.createElement("div");
+  wrap.className = "field-wrap sim-field-wrap";
+  const svg = makeSVG();
+  drawFieldBackground(svg);
+  const blockingNodes = [];
+  rep.players.filter(player => player !== rep.runner).forEach(player => {
+    const node = drawPlayer(svg, player);
+    if(player.type === "ol" || playerRole(player) === "te") blockingNodes.push({player,node});
+  });
+  baseFourThreeDefense(rep.ballX).forEach(player => drawDefensePlayer(svg, player));
+  const footballToken = drawFootball(svg, rep.ballX);
+  const snapPoint = {x:rep.ballX,y:DISPLAY_LOS_Y - 6};
+
+  function setSimulationFootball(point){
+    footballToken.setAttribute("transform",`translate(${point.x} ${point.y}) rotate(-24) scale(.55)`);
+  }
+
+  const defenseWallY = DISPLAY_LOS_Y + 16;
+  svg.appendChild(el("line",{class:"sim-wall-line",x1:24,y1:defenseWallY,x2:FW-24,y2:defenseWallY}));
+  let mikeX = rep.ballX;
+  let mikeY = DISPLAY_LOS_Y + 94;
+  let phase = "position";
+  let cursorTarget = {x:mikeX,y:mikeY};
+  let mikeUnlocked = false;
+  let resolved = false;
+  let runToken = simRunnerToken(rep.runner, rep.runPath[0]);
+  const mikeToken = el("g",{class:"sim-mike-token",transform:`translate(${mikeX},${mikeY})`});
+  mikeToken.appendChild(el("circle",{cx:0,cy:15,r:15,fill:"rgba(0,0,0,.28)"}));
+  mikeToken.appendChild(el("circle",{cx:0,cy:0,r:15,fill:"#ffffff",stroke:COLORS.mike,"stroke-width":2}));
+  const mikeLabel = el("text",{x:0,y:5,"text-anchor":"middle","font-size":12,"font-weight":800,fill:COLORS.mike});
+  mikeLabel.textContent = "M";
+  mikeToken.appendChild(mikeLabel);
+  const mikeName = el("text",{x:0,y:-20,"text-anchor":"middle","font-size":8,"font-weight":850,fill:"#ffffff"});
+  mikeName.textContent = "MIKE";
+  mikeToken.appendChild(mikeName);
+  svg.appendChild(runToken);
+  svg.appendChild(mikeToken);
+  wrap.appendChild(svg);
+  fieldHolder.appendChild(wrap);
+  card.appendChild(fieldHolder);
+
+  const instruction = document.createElement("div");
+  instruction.className = "sim-instruction";
+  instruction.textContent = "Move the cursor to steer Mike. He cannot cross the line of scrimmage. Press Enter to snap the ball.";
+  card.appendChild(instruction);
+  const actions = document.createElement("div");
+  actions.className = "sim-actions";
+  const runBtn = document.createElement("button");
+  runBtn.className = "sim-action";
+  runBtn.textContent = "Run the Play (Enter)";
+  runBtn.setAttribute("aria-keyshortcuts","Enter");
+  const feedback = document.createElement("div");
+  feedback.className = "sim-feedback";
+  actions.appendChild(runBtn);
+  actions.appendChild(feedback);
+  card.appendChild(actions);
+  main.appendChild(card);
+
+  function clientToSVG(clientX, clientY){
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    return point.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  svg.addEventListener("pointermove", event => {
+    if(!["position","ready","snap","live"].includes(phase)) return;
+    const point = clientToSVG(event.clientX, event.clientY);
+    cursorTarget = {
+      x:simClamp(point.x, 20, FW - 20),
+      y:simClamp(point.y, defenseWallY, FH - 22)
+    };
+  });
+
+  function handleSimKey(event){
+    if(event.key === "Enter" && ["position","ready"].includes(phase)){
+      event.preventDefault();
+      runBtn.click();
+    }
+  }
+  document.addEventListener("keydown", handleSimKey);
+
+  runBtn.onclick = () => {
+    if(!["position","ready"].includes(phase)) return;
+    phase = "snap";
+    runBtn.disabled = true;
+    const startTime = performance.now();
+    const snapDuration = 2000;
+    const duration = 4700;
+    function finish(tackle){
+      if(resolved) return;
+      resolved = true;
+      phase = "complete";
+      document.removeEventListener("keydown", handleSimKey);
+      if(tackle){
+        simScore += 250;
+        feedback.className = "sim-feedback good";
+        feedback.textContent = "Tackle made +250";
+        celebrateCorrect(runBtn,250);
+      } else {
+        feedback.className = "sim-feedback bad";
+        feedback.textContent = "Missed tackle. The runner got through.";
+      }
+      simTries++;
+      updateTop();
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "sim-action secondary";
+      nextBtn.textContent = simTries >= 10 ? "See Results" : "Next Rep";
+      nextBtn.onclick = renderSimulation;
+      actions.appendChild(nextBtn);
+    }
+    function animate(now){
+      const elapsed = now - startTime;
+      if(elapsed < snapDuration){
+        instruction.textContent = `QB cadence... ${((snapDuration - elapsed) / 1000).toFixed(1)}s`;
+        runToken.setAttribute("transform",`translate(${rep.runPath[0].x},${rep.runPath[0].y})`);
+        setSimulationFootball(snapPoint);
+        requestAnimationFrame(animate);
+        return;
+      }
+      if(phase === "snap"){
+        phase = "live";
+        instruction.textContent = "Ball snapped. Move the cursor to drive Mike into the RB.";
+      }
+      const progress = Math.min(1,(elapsed - snapDuration) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const runnerPoint = simRunPoint(rep, eased);
+      runToken.setAttribute("transform",`translate(${runnerPoint.x},${runnerPoint.y})`);
+      const handoffProgress = Math.min(1,progress / .56);
+      const ballPoint = handoffProgress < 1 ? {
+        x:snapPoint.x + (rep.handoffPoint.x - snapPoint.x) * handoffProgress,
+        y:snapPoint.y + (rep.handoffPoint.y - snapPoint.y) * handoffProgress
+      } : runnerPoint;
+      setSimulationFootball(ballPoint);
+      const blockProgress = Math.min(1, progress / .32);
+      const blockEase = 1 - Math.pow(1 - blockProgress, 2);
+      blockingNodes.forEach(({player,node}) => {
+        const move = simulationBlockOffset(player, rep);
+        node.setAttribute("transform",`translate(${move.x * blockEase},${move.y * blockEase})`);
+      });
+      if(!mikeUnlocked && runnerPoint.y >= DISPLAY_LOS_Y + 24){
+        mikeUnlocked = true;
+        instruction.textContent = "Mike is free. Move the cursor into the ball carrier.";
+      }
+      if(mikeUnlocked){
+        const dx = cursorTarget.x - mikeX;
+        const dy = cursorTarget.y - mikeY;
+        const distance = Math.hypot(dx,dy);
+        const maxStep = 1.1;
+        if(distance > 0.1){
+          const step = Math.min(maxStep,distance);
+          mikeX += dx / distance * step;
+          mikeY = Math.max(defenseWallY, Math.min(FH - 22, mikeY + dy / distance * step));
+        }
+        mikeToken.setAttribute("transform",`translate(${mikeX},${mikeY})`);
+        if(simDistance({x:mikeX,y:mikeY},runnerPoint) <= 30){
+          finish(true);
+          return;
+        }
+      }
+      if(progress < 1){
+        requestAnimationFrame(animate);
+        return;
+      }
+      finish(false);
+    }
+    requestAnimationFrame(animate);
+  };
+}
+
+function renderSimulationEnd(){
+  const main = document.getElementById("main");
+  const card = document.createElement("section");
+  card.className = "card sim-end";
+  const tackles = Math.round(simScore / 250);
+  card.innerHTML = `<div class="sim-kicker">Simulation complete</div><h2>Run Simulation</h2><div class="score">${simScore}</div><div>${tackles} / 10 tackles made</div><div style="color:var(--muted);margin-top:6px;">Read the blocking surface, fit the gap, and close with your path.</div>`;
+  const restart = document.createElement("button");
+  restart.className = "sim-action";
+  restart.textContent = "Run It Again";
+  restart.onclick = () => { simScore = 0; simTries = 0; renderSimulation(); };
+  card.appendChild(restart);
+  main.appendChild(card);
+}
+
+function renderQuestion(){
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  updateTop();
+
+  if(idx >= deck.length){
+    renderEnd();
+    return;
+  }
+
+  const q = deck[idx];
+  const card = document.createElement("div");
+  card.className = "card " + q.type + "-card";
+
+  if(q.scenario){
+    const scenario = document.createElement("div");
+    scenario.className = "scenario-strip";
+    const ordinal = ["","1ST","2ND","3RD","4TH"][q.scenario.down];
+    scenario.innerHTML = `
+      <span class="scenario-kicker">Game situation</span>
+      <strong class="scenario-down">${ordinal} &amp; ${q.scenario.distance}</strong>`;
+    card.appendChild(scenario);
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "question-meta";
+  const badge = document.createElement("span");
+  badge.className = "qtype " + q.type;
+  badge.textContent = typeLabel(q.type);
+  meta.appendChild(badge);
+
+  const diff = document.createElement("span");
+  diff.className = "difficulty-pill";
+  diff.textContent = q.difficulty;
+  meta.appendChild(diff);
+  card.appendChild(meta);
+
+  const strengthGate = document.createElement("section");
+  strengthGate.className = "strength-gate";
+  strengthGate.innerHTML = `
+    <div class="strength-title">What's the strength call</div>
+    <div class="strength-copy">Make the strength call before you read the play.</div>`;
+  const strengthOptions = document.createElement("div");
+  strengthOptions.className = "strength-options";
+  const strengthFeedback = document.createElement("div");
+  strengthFeedback.className = "strength-feedback";
+  strengthGate.appendChild(strengthOptions);
+  strengthGate.appendChild(strengthFeedback);
+  card.appendChild(strengthGate);
+
+  const questionStage = document.createElement("div");
+  questionStage.className = "question-stage locked";
+  card.appendChild(questionStage);
+
+  const qt = document.createElement("p");
+  qt.className = "qtext";
+  qt.textContent = q.prompt;
+  questionStage.appendChild(qt);
+
+  if(q.meta){
+    const drillMeta = document.createElement("div");
+    drillMeta.className = "drill-meta";
+    const metaItems = [];
+    if(q.type !== "formation") metaItems.push(["Formation", q.formation || "Install look"]);
+    metaItems.push(
+      ["Front", q.meta.front],
+      ["Center", q.meta.center],
+      ["Fit", q.meta.fit]
+    );
+    if(q.coverage) metaItems.push(["Coverage", q.coverage.label]);
+    if(q.routes?.length) metaItems.push(["Route tree", q.routes.map(route => `${route.number} ${route.route}`).join(" / ")]);
+    metaItems.forEach(([label, text]) => {
+      const item = document.createElement("div");
+      item.className = "meta-item";
+      item.innerHTML = `<span>${label}</span><strong>${text}</strong>`;
+      drillMeta.appendChild(item);
+    });
+    questionStage.appendChild(drillMeta);
+  }
+
+  if(q.read){
+    const rb = document.createElement("div");
+    rb.className = "readbox";
+    rb.textContent = (q.type === "playtype" ? "Pre-snap read: " : "Install read: ") + q.read;
+    questionStage.appendChild(rb);
+  }
+
+  let keyGrid = null;
+  if(q.keys){
+    keyGrid = document.createElement("div");
+    keyGrid.className = "key-grid";
+    q.keys.forEach(k => {
+      const item = document.createElement("div");
+      item.className = "key-card";
+      item.innerHTML = `<strong>${k.label}</strong>${k.text}`;
+      keyGrid.appendChild(item);
+    });
+  }
+
+  const fieldHolder = document.createElement("div");
+  fieldHolder.className = "field-holder";
+  questionStage.appendChild(fieldHolder);
+
+  const feedback = document.createElement("div");
+  feedback.className = "feedback";
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "next-btn";
+  nextBtn.textContent = idx === deck.length-1 ? "See Results" : "Next Rep";
+  nextBtn.onclick = () => { idx++; renderQuestion(); };
+
+  ["RIP","LIGHTNING"].forEach(call => {
+    const btn = document.createElement("button");
+    btn.className = "strength-btn";
+    btn.textContent = call;
+    btn.onclick = () => {
+      const buttons = strengthOptions.querySelectorAll(".strength-btn");
+      buttons.forEach(b => b.disabled = true);
+      const isCorrect = call === q.scenario.strengthCall;
+      btn.classList.add(isCorrect ? "correct" : "wrong");
+      if(!isCorrect){
+        buttons.forEach(b => { if(b.textContent === q.scenario.strengthCall) b.classList.add("correct"); });
+      }
+      recordResult(isCorrect, btn, 150, false);
+      strengthFeedback.classList.add("show");
+      strengthFeedback.innerHTML = `<strong>${isCorrect ? "Correct strength call +150" : "Strength call: " + q.scenario.strengthCall}</strong> Wide side is ${q.scenario.wideSide}. The next read is unlocked.`;
+      questionStage.classList.remove("locked");
+      questionStage.classList.add("unlocked");
+    };
+    strengthOptions.appendChild(btn);
+  });
+
+  if(q.type === "formation" || q.type === "playtype" || q.type === "coverage"){
+    const svg = renderField(fieldHolder, q.players, {coverage:q.coverage,routes:q.routes,ballX:q.scenario.ballX});
+    const choicesWrap = document.createElement("div");
+    choicesWrap.className = "choices";
+    q.choices.forEach(choice => {
+      const option = document.createElement("div");
+      option.className = "choice-option";
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.textContent = choice;
+      btn.onclick = () => {
+        const buttons = choicesWrap.querySelectorAll(".choice-btn");
+        buttons.forEach(b => b.disabled = true);
+        const isCorrect = choice === q.answer;
+        btn.classList.add(isCorrect ? "correct" : "wrong");
+        if(!isCorrect){
+          buttons.forEach(b => { if(b.textContent === q.answer) b.classList.add("correct"); });
+        }
+        recordResult(isCorrect, btn, 150);
+        feedback.classList.add("show", isCorrect ? "correct" : "wrong");
+        feedback.innerHTML = `<strong>${isCorrect ? "Correct +150" : "Not quite -50"}</strong>${q.explain}`;
+        nextBtn.classList.add("show");
+      };
+      option.appendChild(btn);
+      if(q.type === "playtype") renderChoicePreview(option, q.players, choice, q.scenario.ballX);
+      choicesWrap.appendChild(option);
+    });
+    questionStage.appendChild(choicesWrap);
+  }
+
+  if(q.type === "mike"){
+    const hint = document.createElement("div");
+    hint.className = "drag-hint";
+    hint.textContent = "Drag the M token onto the field to set Mike's alignment, then select Check Alignment.";
+    questionStage.appendChild(hint);
+
+    const ballX = q.scenario.ballX;
+    const svg = renderField(fieldHolder, q.players, {ballX});
+
+    // draggable Mike token, starts parked below the formation
+    const startX = ballX, startY = FH - 26;
+    const token = el("g",{cursor:"grab"});
+    const tCircle = el("circle",{cx:0,cy:0,r:15,fill:"#ffffff",stroke:"#1d3fd7","stroke-width":2});
+    const tText = el("text",{x:0,y:5,"text-anchor":"middle","font-size":12,"font-weight":800,fill:"#1d3fd7"});
+    tText.textContent = "M";
+    token.appendChild(tCircle);
+    token.appendChild(tText);
+    token.setAttribute("transform",`translate(${startX},${startY})`);
+    svg.appendChild(token);
+
+    let tx = startX, ty = startY;
+    let dragging = false;
+    let answered = false;
+
+    function clientToSVG(clientX, clientY){
+      const pt = svg.createSVGPoint();
+      pt.x = clientX; pt.y = clientY;
+      const ctm = svg.getScreenCTM().inverse();
+      return pt.matrixTransform(ctm);
+    }
+
+    token.addEventListener("pointerdown", (e) => {
+      if(answered) return;
+      dragging = true;
+      token.setPointerCapture(e.pointerId);
+      token.style.cursor = "grabbing";
+    });
+    token.addEventListener("pointermove", (e) => {
+      if(!dragging || answered) return;
+      const p = clientToSVG(e.clientX, e.clientY);
+      tx = Math.max(20, Math.min(FW-20, p.x));
+      ty = Math.max(20, Math.min(FH-20, p.y));
+      token.setAttribute("transform",`translate(${tx},${ty})`);
+    });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      token.style.cursor = "grab";
+    }
+    token.addEventListener("pointerup", endDrag);
+    token.addEventListener("pointercancel", endDrag);
+
+    const checkBtn = document.createElement("button");
+    checkBtn.className = "check-btn show";
+    checkBtn.textContent = "Check Alignment";
+    checkBtn.onclick = () => {
+      if(answered) return;
+      answered = true;
+      checkBtn.style.display = "none";
+      const correctY = displayY(q.correct.y);
+      const correctX = alignXToBall(q.correct.x, ballX);
+      const dx = tx - correctX, dy = ty - correctY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const isCorrect = dist <= q.radius;
+      recordResult(isCorrect, card, 320);
+
+      // draw correct-zone marker
+      svg.appendChild(el("circle",{cx:correctX,cy:correctY,r:q.radius,fill:"rgba(255,255,255,.18)",stroke:"#ffffff","stroke-width":2,"stroke-dasharray":"5,4"}));
+      svg.appendChild(el("circle",{cx:correctX,cy:correctY,r:5,fill:"#ffffff"}));
+      const lbl = el("text",{x:correctX, y:correctY-20, "text-anchor":"middle","font-size":11,fill:"#ffffff","font-weight":800});
+      lbl.textContent = "Correct spot";
+      svg.appendChild(lbl);
+
+      feedback.classList.add("show", isCorrect ? "correct" : "wrong");
+      feedback.innerHTML = `<strong>${isCorrect ? "Good alignment +320" : "Off alignment -50"}</strong>${q.explain}`;
+      nextBtn.classList.add("show");
+    };
+    questionStage.appendChild(checkBtn);
+  }
+
+  if(keyGrid) questionStage.appendChild(keyGrid);
+
+  questionStage.appendChild(feedback);
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.appendChild(nextBtn);
+  questionStage.appendChild(actions);
+
+  const rule = document.createElement("div");
+  rule.className = "rule-note";
+  rule.textContent = RULE_NOTE;
+  questionStage.appendChild(rule);
+
+  main.appendChild(card);
+}
+
+function renderEnd(){
+  const main = document.getElementById("main");
+  const card = document.createElement("div");
+  card.className = "card end-card";
+  const pct = Math.round((correctCount/deck.length)*100);
+  let msg = "Keep drilling the strength-call rule.";
+  if(pct >= 90) msg = "Elite pre-snap recognition. You're calling the front with command.";
+  else if(pct >= 70) msg = "Solid read. Tighten up the shade distance on trips/twins looks.";
+  else if(pct >= 50) msg = "Decent start - review how TE and receiver count set strength.";
+  card.innerHTML = `
+    <div class="end-kicker">Session complete</div>
+    <div class="score">${score.toLocaleString()}</div>
+    <div style="color:var(--soft);font-size:.95rem;">${correctCount} / ${deck.length} correct</div>
+    <div style="color:var(--muted);font-size:.95rem;">${msg}</div>
+    <div style="color:var(--soft);font-size:.86rem;margin-top:10px;">Best streak: ${bestStreak}</div>
+  `;
+  const btn = document.createElement("button");
+  btn.className = "restart-btn";
+  btn.textContent = "Run It Back";
+  btn.onclick = buildDeck;
+  card.appendChild(btn);
+  main.appendChild(card);
+}
+
+document.getElementById("diffBasic").onclick = () => {
+  activeMode = "quiz";
+  currentDifficulty = "basic";
+  document.getElementById("diffBasic").classList.add("active");
+  document.getElementById("diffAll").classList.remove("active");
+  document.getElementById("runSim").classList.remove("active");
+  buildDeck();
+};
+document.getElementById("diffAll").onclick = () => {
+  activeMode = "quiz";
+  currentDifficulty = "all";
+  document.getElementById("diffAll").classList.add("active");
+  document.getElementById("diffBasic").classList.remove("active");
+  document.getElementById("runSim").classList.remove("active");
+  buildDeck();
+};
+document.getElementById("runSim").onclick = () => {
+  activeMode = "simulation";
+  simScore = 0;
+  simTries = 0;
+  simRep = null;
+  document.getElementById("diffBasic").classList.remove("active");
+  document.getElementById("diffAll").classList.remove("active");
+  document.getElementById("runSim").classList.add("active");
+  renderSimulation();
+};
+
+buildDeck();
+</script>
+</body>
+</html>
